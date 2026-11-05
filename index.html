@@ -22,7 +22,7 @@
   --ink: #2a1630;
   --muted: #8b8395;
   --line: #ececf2;
-  --hot: #ff6542; --boost: #d0211c;
+  --hot: #ff6542; --level: #7d7389;
   --hot-soft: #ffe2da;
   --on-hot: #ffffff;
   --cold: #4f5bd5;
@@ -471,7 +471,7 @@ input[type="text"] { width: 100%; }
           </div>
           <div class="card chartbox" id="lvBox">
             <div id="lvChart"></div>
-            <p class="small muted" style="padding:0 8px 2px"><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:var(--boost);vertical-align:middle;margin:0 2px 2px"></span> Boost acceso</p>
+            <p class="small muted" style="padding:0 8px 2px"><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:var(--hot);vertical-align:middle;margin:0 2px 2px"></span> Boost acceso</p>
           </div>
           <div class="group">
             <p class="eyebrow">Ultimi Boost accesi</p>
@@ -1073,8 +1073,8 @@ function drawLevel(box, frame, range, prefix) {
   let rows = raw;
   if (bucket) {
     const g = new Map();
-    raw.forEach((r) => { const k = Math.floor(r.t.getTime() / (bucket * 3600000)); const e = g.get(k) || { t: 0, pct: 0, n: 0, boost: false }; e.t += r.t.getTime(); e.pct += r.pct; e.n++; e.boost = e.boost || r.boost; g.set(k, e); });
-    rows = [...g.values()].map((e) => ({ t: new Date(e.t / e.n), pct: e.pct / e.n, boost: e.boost }));
+    raw.forEach((r) => { const k = Math.floor(r.t.getTime() / (bucket * 3600000)); const e = g.get(k) || { t: 0, pct: 0, n: 0, boost: false }; e.t += r.t.getTime(); e.pct += r.pct; e.n++; e.boost = e.boost || r.boost; e.soglia = r.soglia; g.set(k, e); });
+    rows = [...g.values()].map((e) => ({ t: new Date(e.t / e.n), pct: e.pct / e.n, boost: e.boost, soglia: e.soglia }));
     rows.push(raw[raw.length - 1]);
   }
   const W = Math.max(300, Math.round(box.clientWidth || 340)), H = W > 600 ? 230 : 200, L = 46, R = 14, T = 12, B = 28;
@@ -1108,26 +1108,44 @@ function drawLevel(box, frame, range, prefix) {
     i = j;
   }
   const cid = prefix + "BoostClip";
+  // minimo impostato (a gradini), solo per 24 ore e 3 giorni
+  let minPath = "", minLabel = "";
+  if (range <= 3) {
+    let open = false, first = null;
+    for (let i = 0; i < raw.length; i++) {
+      const r = raw[i], n = raw[i + 1];
+      if (r.soglia == null) { open = false; continue; }
+      const x1 = X(r.t), y = Y(r.soglia);
+      const x2 = n && n.t - r.t < 2 * 3600000 ? X(n.t) : x1;
+      minPath += ` M${x1.toFixed(1)},${y.toFixed(1)}`;
+      minPath += ` L${x2.toFixed(1)},${y.toFixed(1)}`;
+      if (!first) first = [x1, y];
+      open = !!(n && n.soglia != null && n.t - r.t < 2 * 3600000);
+    }
+    if (first) minLabel = `<text x="${(first[0] + 2).toFixed(1)}" y="${(first[1] - 7).toFixed(1)}" font-size="11" font-weight="600" font-family="var(--body)" fill="var(--ink)" fill-opacity=".6">minimo</text>`;
+  }
   const lastP = pts[pts.length - 1];
   const gid = prefix + "Grad";
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Acqua calda nel tempo">
-    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--hot)" stop-opacity=".35"/><stop offset="1" stop-color="var(--hot)" stop-opacity="0"/></linearGradient></defs>
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--level)" stop-opacity=".2"/><stop offset="1" stop-color="var(--level)" stop-opacity="0"/></linearGradient><linearGradient id="${gid}B" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--hot)" stop-opacity=".32"/><stop offset=".75" stop-color="var(--hot)" stop-opacity="0"/></linearGradient>${clips ? `<clipPath id="${cid}">${clips}</clipPath>` : ""}</defs>
     ${grid}
     <line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--track)" stroke-width="2" stroke-linecap="round"/>
     <path d="${area}" fill="url(#${gid})"/>
-    <path d="${line}" fill="none" stroke="var(--hot)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    ${clips ? `<clipPath id="${cid}">${clips}</clipPath><path d="${line}" fill="none" stroke="var(--boost)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#${cid})"/>` : ""}
-    <circle cx="${lastP[0]}" cy="${lastP[1]}" r="6" fill="${rows[rows.length - 1].boost ? "var(--boost)" : "var(--hot)"}" stroke="var(--surface)" stroke-width="3"/>
+    ${clips ? `<path d="${area}" fill="url(#${gid}B)" clip-path="url(#${cid})"/>` : ""}
+    ${minPath ? `<path d="${minPath}" fill="none" stroke="var(--ink)" stroke-opacity=".5" stroke-width="2" stroke-dasharray="1 5" stroke-linecap="round" stroke-linejoin="round"/>${minLabel}` : ""}
+    <path d="${line}" fill="none" stroke="var(--level)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    ${clips ? `<path d="${line}" fill="none" stroke="var(--hot)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#${cid})"/>` : ""}
+    <circle cx="${lastP[0]}" cy="${lastP[1]}" r="6" fill="${rows[rows.length - 1].boost ? "var(--hot)" : "var(--level)"}" stroke="var(--surface)" stroke-width="3"/>
     ${labels}
     <line id="${prefix}Cross" x1="0" x2="0" y1="${T}" y2="${Y(0)}" stroke="var(--ink)" stroke-opacity=".18" stroke-width="1.5" visibility="hidden"/>
-    <circle id="${prefix}Dot" r="6" fill="var(--hot)" stroke="var(--surface)" stroke-width="3" visibility="hidden"/>
+    <circle id="${prefix}Dot" r="6" fill="var(--level)" stroke="var(--surface)" stroke-width="3" visibility="hidden"/>
     <rect x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent"/>
   </svg>`;
   attachHover(box, frame, W, (xv) => {
     const tt = new Date(start.getTime() + (xv - L) / (W - L - R) * (end - start));
     let best = rows[0]; rows.forEach((r) => { if (Math.abs(r.t - tt) < Math.abs(best.t - tt)) best = r; });
-    const dot = box.querySelector(`#${prefix}Dot`); if (dot) dot.setAttribute("fill", best.boost ? "var(--boost)" : "var(--hot)");
-    return { x: X(best.t), y: Y(best.pct), html: `${fmtDay(best.t)} ${fmtTime(best.t)}<br><b>${fmtN(best.pct)}%</b> · ${docce(showersAt(best.pct))}${best.boost ? "<br>Boost acceso" : ""}` };
+    const dot = box.querySelector(`#${prefix}Dot`); if (dot) dot.setAttribute("fill", best.boost ? "var(--hot)" : "var(--level)");
+    return { x: X(best.t), y: Y(best.pct), html: `${fmtDay(best.t)} ${fmtTime(best.t)}<br><b>${fmtN(best.pct)}%</b> · ${docce(showersAt(best.pct))}${best.soglia != null && range <= 3 ? `<br>Minimo ${fmtN(best.soglia)}%` : ""}${best.boost ? "<br>Boost acceso" : ""}` };
   }, prefix);
 }
 function attachHover(container, frame, W, pick, prefix) {
