@@ -310,6 +310,9 @@ input[type="text"] { width: 100%; }
 .kpi { padding: 14px; display: grid; grid-template-rows: 1fr auto; align-content: space-between; gap: 4px; border-radius: 22px; box-shadow: none; }
 .kpis .kpi { background: var(--surface); box-shadow: var(--shadow); }
 .kpi .k { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+.kpi .k.kp { display: inline-flex; align-items: center; gap: 2px; }
+.kpi .k.kp .ic { width: 15px; height: 15px; }
+.kpi .v .x { font-size: .8rem; font-weight: 700; color: var(--muted); letter-spacing: 0; }
 .kpi .v { font-family: var(--display); font-weight: 800; font-size: 1.35rem; letter-spacing: -0.02em; }
 .note { font-size: 0.9rem; color: var(--muted); }
 .controls { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
@@ -548,6 +551,7 @@ const MONTHS_S = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set",
 const WEEK = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 const WEEK_L = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
 const ICON = {
+  person: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`,
   bolt: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg>`,
   moon: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>`,
   temp: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/></svg>`,
@@ -1208,10 +1212,10 @@ function renderCons() {
   const thisMonth = months.find((m) => m.data.slice(0, 7) === todayYmd.slice(0, 7));
   if (isL) {
     $("kpis").innerHTML = `
-      <div class="card kpi"><span class="k">Oggi, finora</span><span class="v">${(() => { const t = all.find((d) => d.data === todayYmd); return t && t.litri != null ? fmtN(t.litri, 0) + " L" : "–"; })()}</span></div>
-      <div class="card kpi"><span class="k">Media al giorno</span><span class="v">${fmtN(a30, 0)} L</span></div>
-      <div class="card kpi"><span class="k">A persona al giorno</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + " L"}</span></div>`;
-    $("consNote").textContent = `Litri di acqua calda (a 40 °C) usati in casa: docce, rubinetti, lavandini ed eventuali elettrodomestici collegati all'acqua calda. «Media» e «A persona» sono calcolate sugli ultimi 30 giorni, per ${persone} persone.`;
+      <div class="card kpi"><span class="k">Oggi</span><span class="v">${(() => { const t = all.find((d) => d.data === todayYmd); return t && t.litri != null ? fmtN(t.litri, 0) + " L" : "–"; })()}</span></div>
+      <div class="card kpi"><span class="k">Media/g</span><span class="v">${fmtN(a30, 0)} L</span></div>
+      <div class="card kpi"><span class="k kp">${ICON.person}/g</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + " L"}<span class="x"> × ${persone}</span></span></div>`;
+    $("consNote").textContent = `Litri di acqua calda (a 40 °C) usati in casa: docce, rubinetti, lavandini ed eventuali elettrodomestici collegati all'acqua calda. Oggi = da mezzanotte a ora. Media e persona: litri al giorno, sugli ultimi 30 giorni (×${persone} = persone in casa).`;
   } else {
     const both = last30.filter((d) => d.kwh != null && d.litri);
     const per100 = both.length ? both.reduce((a, d) => a + d.kwh, 0) / both.reduce((a, d) => a + d.litri, 0) * 100 : null;
