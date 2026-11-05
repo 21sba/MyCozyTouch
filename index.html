@@ -13,7 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: una colonna da telefono (max 720px). In alto la risposta ("quante docce"), poi il programma, poi i dati. */
+/* Layout: telefono = una colonna (risposta, programma, grafici, impostazioni).
+   Desktop (>= 1040px) = due colonne: a sinistra stato, programma e impostazioni; a destra grafici, consumi e consigli. */
 :root {
   --bg: #f3f5f7;
   --surface: #ffffff;
@@ -26,12 +27,11 @@
   --on-hot: #ffffff;
   --cold: #3d7fa6;
   --cold-soft: #d8e7f0;
+  --sun: #8a6408;
+  --sun-soft: #f6ecd0;
   --good: #2f7d4f;
-  --good-soft: #dcefe3;
   --warn: #a8700c;
-  --warn-soft: #f6ead0;
   --bad: #b8352f;
-  --bad-soft: #f6dcda;
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --body: "Figtree", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -42,7 +42,8 @@
   :root {
     --bg: #0f151b; --surface: #172029; --sunk: #111920; --ink: #e8eef3; --muted: #93a1ae; --line: #263340;
     --hot: #ef7a45; --hot-soft: #3a2219; --on-hot: #1d0f08; --cold: #6aaed6; --cold-soft: #16303f;
-    --good: #5cbf85; --good-soft: #17301f; --warn: #e0a83a; --warn-soft: #33270f; --bad: #ee6a62; --bad-soft: #3a1a18;
+    --sun: #e6b84a; --sun-soft: #33290f;
+    --good: #5cbf85; --warn: #e0a83a; --bad: #ee6a62;
     color-scheme: dark;
   }
 }
@@ -60,7 +61,7 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 18px 56px;
-  display: grid; gap: 32px;
+  display: grid; gap: 28px;
 }
 h1, h2, h3 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
 h1 { font-size: 1.15rem; }
@@ -79,73 +80,92 @@ a { color: var(--cold); }
 header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .fresh { font-size: 0.85rem; color: var(--muted); }
 
+/* due colonne su desktop, una sola su telefono (con l'ordine giusto) */
+#main { display: grid; gap: 32px; }
+.col { display: contents; }
+.o1 { order: 1; } .o2 { order: 2; } .o3 { order: 3; } .o4 { order: 4; } .o5 { order: 5; } .o6 { order: 6; } .o7 { order: 7; }
+@media (min-width: 1040px) {
+  .wrap { max-width: 1200px; padding-block: 28px 64px; }
+  #main { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: 40px; align-items: start; }
+  .col { display: grid; gap: 36px; min-width: 0; }
+  h1 { font-size: 1.35rem; }
+}
+
 /* ---------- risposta principale ---------- */
+.sec { display: grid; gap: 14px; min-width: 0; }
 .hero { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
 .tank { width: 96px; height: 168px; }
 .tank svg { width: 100%; height: 100%; display: block; }
 .answer { display: grid; gap: 8px; min-width: 0; }
 .verdict { font-size: 0.95rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
 .verdict .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
-.verdict.good .dot { background: var(--good); } .verdict.good { color: var(--good); }
-.verdict.warn .dot { background: var(--warn); } .verdict.warn { color: var(--warn); }
-.verdict.bad .dot { background: var(--bad); }  .verdict.bad { color: var(--bad); }
+.verdict.good { color: var(--good); } .verdict.good .dot { background: var(--good); }
+.verdict.warn { color: var(--warn); } .verdict.warn .dot { background: var(--warn); }
+.verdict.bad { color: var(--bad); }   .verdict.bad .dot { background: var(--bad); }
 .showers { font-family: var(--display); font-weight: 700; font-size: 2.6rem; line-height: 1; letter-spacing: -0.03em; }
-.showers .templine { margin-top: 2px; }
-.showers .temp { font-family: var(--body); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
 .showers span { font-size: 1.15rem; font-weight: 500; letter-spacing: 0; color: var(--muted); display: block; margin-top: 6px; font-family: var(--body); }
+.showers .temp { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 .state { font-size: 0.95rem; }
 .state b { font-weight: 600; }
+.banner { padding: 12px 14px; border-radius: 12px; background: var(--cold-soft); font-size: 0.92rem; }
 
 .actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
 .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 16px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; }
 .btn.primary { background: var(--hot); border-color: var(--hot); color: #fff; }
 .btn.quiet { background: transparent; }
-.btn:disabled { opacity: 0.55; cursor: progress; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn.sm { min-height: 40px; padding: 8px 14px; font-size: 0.92rem; }
+.btn.danger { color: var(--bad); }
 .status { font-size: 0.9rem; min-height: 1.35em; color: var(--muted); }
+.status:empty { min-height: 0; }
 .status.err { color: var(--bad); }
 .status.ok { color: var(--good); }
-
 .plan-now { padding: 14px 16px; display: grid; gap: 4px; }
-.plan-now .eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.eyebrow { font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 
 /* ---------- programma ---------- */
-.sec { display: grid; gap: 14px; }
 .sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.seg { display: inline-flex; background: var(--sunk); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-size: 0.86rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.seg button .inuse { font-size: 0.7rem; font-weight: 700; color: var(--good); margin-left: 4px; }
+.seasons { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; font-size: 0.9rem; color: var(--muted); }
+.seasons button { border: 0; background: none; padding: 0; color: var(--cold); text-decoration: underline; font-size: 0.9rem; }
 .dayline { position: relative; height: 40px; display: flex; border-radius: 10px; overflow: hidden; }
-.dayline div { height: 100%; min-width: 0; border-right: 2px solid var(--bg); }
+.dayline div { height: 100%; min-width: 0; border-right: 2px solid var(--bg); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
 .dayline div:last-child { border-right: 0; }
 .dayline .now { position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 2px; background: var(--ink); border-right: 0; }
 .dayscale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
-.periods { display: grid; }
+.periods { display: grid; overflow: hidden; }
 .period { display: grid; grid-template-columns: 96px 1fr auto; gap: 12px; align-items: center; padding: 14px 16px; border-top: 1px solid var(--line); width: 100%; text-align: left; background: transparent; border-left: 0; border-right: 0; border-bottom: 0; }
-.period:first-child { border-top: 0; }
+.periods > .period:first-child { border-top: 0; }
 .period .when { font-family: var(--mono); font-size: 0.9rem; line-height: 1.3; font-variant-numeric: tabular-nums; }
 .period .when small { display: block; color: var(--muted); font-size: 0.8rem; }
 .period .what { min-width: 0; display: grid; gap: 2px; }
 .period .what b { font-weight: 600; }
 .period .chev { color: var(--muted); font-size: 1.1rem; }
 .period.current { background: color-mix(in srgb, var(--hot) 8%, var(--surface)); }
-.period.current:first-child { border-radius: var(--r) var(--r) 0 0; }
-.tag { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; background: var(--hot); color: #fff; margin-left: 6px; vertical-align: 1px; }
+.tag { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; background: var(--hot); color: var(--on-hot); margin-left: 6px; vertical-align: 1px; }
+.tag.sun { background: var(--sun-soft); color: var(--sun); }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: 0; }
 
 .editor { padding: 16px; display: grid; gap: 18px; border-top: 1px solid var(--line); background: var(--sunk); }
-.editor .q { display: grid; gap: 8px; }
-.editor .q > span:first-child { font-weight: 600; }
-.timepick { display: inline-flex; align-items: center; gap: 6px; }
-.timepick select, .editor input[type="text"] { padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.q { display: grid; gap: 8px; }
+.q > .ql { font-weight: 600; }
+.timepick { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+select, input[type="text"], input[type="date"], input[type="number"] { padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); min-width: 0; }
 .timepick select { font-family: var(--mono); font-size: 1rem; }
-.editor input[type="text"] { width: 100%; }
+input[type="text"] { width: 100%; }
 .choice { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
-.choice input { margin-top: 4px; accent-color: var(--hot); }
+.choice input { margin-top: 4px; accent-color: var(--hot); flex: none; }
 .choice > span { display: grid; gap: 6px; min-width: 0; flex: 1; }
 .slider { display: grid; gap: 4px; }
 .slider input { width: 100%; accent-color: var(--hot); }
-.slider .read { display: flex; justify-content: space-between; font-size: 0.9rem; }
+.slider .read { display: flex; justify-content: space-between; font-size: 0.9rem; gap: 8px; }
 .slider .read b { font-family: var(--mono); font-weight: 500; }
-.editor .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
-.btn.danger { color: var(--bad); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 0.95rem; }
+.check > input { margin-top: 4px; accent-color: var(--hot); flex: none; width: 18px; height: 18px; }
 
 .savebar { position: sticky; bottom: max(12px, env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 12px 10px 16px; border-radius: 14px; background: var(--ink); color: var(--bg); box-shadow: 0 6px 24px rgba(0,0,0,.18); z-index: 5; }
 .savebar .btn { min-height: 40px; }
@@ -161,29 +181,49 @@ header.top { display: flex; align-items: baseline; justify-content: space-betwee
 .switch input:focus-visible + span { outline: 2px solid var(--cold); outline-offset: 2px; }
 
 /* ---------- grafici ---------- */
-.seg { display: inline-flex; background: var(--sunk); border-radius: 10px; padding: 3px; gap: 2px; }
-.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
-.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 .chartbox { position: relative; padding: 12px 6px 6px; }
 .chartbox svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8rem; color: var(--muted); padding: 4px 8px; }
 .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); padding: 6px 9px; border-radius: 8px; font-size: 0.8rem; line-height: 1.35; white-space: nowrap; transform: translate(-50%, -100%); z-index: 2; }
 .tip b { font-family: var(--mono); font-weight: 500; }
-.empty { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+.empty { padding: 26px 16px; text-align: center; color: var(--muted); font-size: 0.9rem; }
 .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .kpi { padding: 10px 12px; display: grid; gap: 2px; }
 .kpi .k { font-size: 0.78rem; color: var(--muted); }
 .kpi .v { font-family: var(--mono); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.note { font-size: 0.85rem; color: var(--muted); }
 .price { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); flex-wrap: wrap; }
-.price input { width: 76px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-family: var(--mono); }
+.price input { width: 80px; padding: 5px 8px; font-family: var(--mono); }
 
-/* ---------- dettagli ---------- */
+/* ---------- consigli ---------- */
+.advice { padding: 16px; display: grid; gap: 14px; }
+.progress { height: 8px; border-radius: 999px; background: var(--sunk); overflow: hidden; }
+.progress div { height: 100%; background: var(--cold); border-radius: 999px; }
+.facts { display: grid; gap: 6px; margin: 0; padding-left: 1.1em; font-size: 0.95rem; }
+.proposal { display: grid; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.proposal div { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 0.9rem; }
+.proposal div:first-child { border-top: 0; }
+.proposal .mono { font-size: 0.85rem; }
+
+/* ---------- impostazioni ---------- */
+.setting { padding: 16px; display: grid; gap: 14px; }
+.setting-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.stepper button { width: 48px; height: 48px; border: 0; background: var(--sunk); font-size: 1.4rem; font-weight: 600; }
+.stepper button:disabled { opacity: .4; }
+.stepper output { min-width: 92px; text-align: center; font-family: var(--display); font-weight: 700; font-size: 1.5rem; }
+.steps { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 0.92rem; }
+.copyline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.copyline code { font-family: var(--mono); font-size: 0.9rem; background: var(--sunk); padding: 6px 10px; border-radius: 8px; user-select: all; word-break: break-all; }
+.inline-num { width: 76px; font-family: var(--mono); padding: 4px 8px !important; }
+.daterow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
 details.card > summary { list-style: none; padding: 14px 16px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 details.card > summary::-webkit-details-marker { display: none; }
 details.card > summary::after { content: "›"; color: var(--muted); font-size: 1.2rem; transition: transform .2s; }
 details.card[open] > summary::after { transform: rotate(90deg); }
-.dl { display: grid; grid-template-columns: 1fr auto; padding: 0 16px 8px; }
+.dl { display: grid; grid-template-columns: 1fr auto; padding: 0 16px 8px; margin: 0; }
 .dl > * { padding: 9px 0; border-top: 1px solid var(--line); font-size: 0.92rem; }
 .dl dt { color: var(--muted); }
 .dl dd { margin: 0; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
@@ -191,18 +231,19 @@ details.card[open] > summary::after { transform: rotate(90deg); }
 .ev { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 0.92rem; }
 .ev .mono { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
 
-/* ---------- collegamento ---------- */
 .setup { display: grid; gap: 16px; padding: 18px; }
 .setup ol { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
 .field { display: grid; gap: 8px; }
 .field input { padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-family: var(--mono); font-size: 0.9rem; min-width: 0; width: 100%; }
-footer { font-size: 0.85rem; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+footer { font-size: 0.85rem; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; order: 8; }
 footer button { border: 0; background: none; padding: 0; color: var(--cold); text-decoration: underline; }
+@media (min-width: 1040px) { footer { grid-column: 1 / -1; } }
 
 @media (max-width: 380px) {
   .tank { width: 80px; height: 140px; }
   .showers { font-size: 2.2rem; }
   .period { grid-template-columns: 84px 1fr auto; padding: 12px 14px; }
+  .kpis { gap: 6px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
@@ -218,10 +259,10 @@ footer button { border: 0; background: none; padding: 0; color: var(--cold); tex
   <!-- collegamento iniziale -->
   <section id="setup" class="card setup" hidden>
     <h2>Collega la dashboard</h2>
-    <p>La pagina legge e comanda il repository privato <span class="mono">AutoCozyTouch</span> con una chiave GitHub che vale solo per lui. La chiave resta salvata su questo telefono.</p>
+    <p>La pagina legge e comanda il repository privato <span class="mono">AutoCozyTouch</span> con una chiave GitHub che vale solo per lui. La chiave resta salvata su questo dispositivo.</p>
     <ol>
       <li>Apri <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → nuova chiave (Fine-grained token)</a>.</li>
-      <li>Nome a piacere, scadenza la più lunga che ti offre.</li>
+      <li>Nome a piacere e la scadenza che preferisci.</li>
       <li><b>Repository access</b>: "Only select repositories" → <span class="mono">AutoCozyTouch</span>.</li>
       <li><b>Permissions → Repository permissions</b>: <i>Actions</i> = Read and write, <i>Contents</i> = Read and write.</li>
       <li>Genera la chiave, copiala e incollala qui sotto.</li>
@@ -234,106 +275,190 @@ footer button { border: 0; background: none; padding: 0; color: var(--cold); tex
     </form>
   </section>
 
-  <div id="main" hidden style="display:grid; gap:32px">
+  <div id="main" hidden>
+    <div class="col a">
 
-    <!-- 1. la risposta -->
-    <section class="sec" aria-label="Acqua calda adesso">
-      <div class="hero">
-        <div class="tank" id="tank" role="img" aria-label="Serbatoio"></div>
-        <div class="answer">
-          <p class="verdict" id="verdict"><span class="dot"></span><span id="verdictText">–</span></p>
-          <p class="showers" id="showers">–</p>
-          <p class="state" id="state"></p>
+      <!-- 1. la risposta -->
+      <section class="sec o1" aria-label="Acqua calda adesso">
+        <div class="hero">
+          <div class="tank" id="tank" role="img" aria-label="Serbatoio"></div>
+          <div class="answer">
+            <p class="verdict" id="verdict"><span class="dot"></span><span id="verdictText">–</span></p>
+            <p class="showers" id="showers">–</p>
+            <p class="state" id="state"></p>
+          </div>
         </div>
-      </div>
-      <div class="actions">
-        <button class="btn primary" id="btnBoost" type="button">Accendi il Boost</button>
-        <button class="btn" id="btnRefresh" type="button" aria-label="Aggiorna i dati">Aggiorna</button>
-      </div>
-      <p class="status" id="actStatus" role="status" aria-live="polite"></p>
-      <div class="card plan-now" id="planNow"></div>
-    </section>
+        <p class="banner" id="vacBanner" hidden></p>
+        <div class="actions">
+          <button class="btn primary" id="btnBoost" type="button">Accendi il Boost</button>
+          <button class="btn" id="btnRefresh" type="button" aria-label="Aggiorna i dati">Aggiorna</button>
+        </div>
+        <p class="status" id="actStatus" role="status" aria-live="polite"></p>
+        <div class="card plan-now" id="planNow"></div>
+      </section>
 
-    <!-- 2. programma -->
-    <section class="sec" aria-labelledby="progTitle">
-      <div class="sechead">
-        <h2 id="progTitle">Programma della giornata</h2>
-      </div>
-      <p class="muted small">In ogni fascia lo script controlla ogni 30 minuti. Se l'acqua calda è sotto il minimo, accende il Boost. Lo scaldabagno lo spegne da solo quando ha finito.</p>
-      <div>
-        <div class="dayline" id="dayline" aria-hidden="true"></div>
-        <div class="dayscale"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
-      </div>
-      <div class="card periods" id="periods"></div>
-      <button class="btn sm quiet" type="button" id="btnAdd" style="justify-self:start">+ Aggiungi una fascia</button>
-      <div class="savebar" id="savebar" hidden>
-        <span class="small">Modifiche non salvate</span>
-        <span style="display:flex; gap:6px">
-          <button class="btn sm quiet" type="button" id="btnDiscard">Annulla</button>
-          <button class="btn sm primary" type="button" id="btnSave">Salva</button>
-        </span>
-      </div>
-      <p class="status" id="progStatus" role="status" aria-live="polite"></p>
-      <div class="card toggle">
+      <!-- 2. programma -->
+      <section class="sec o2" aria-labelledby="progTitle" id="secProgram">
+        <div class="sechead">
+          <h2 id="progTitle">Programma</h2>
+          <div class="seg" role="group" aria-label="Stagione">
+            <button type="button" data-season="inverno" aria-pressed="true">Inverno</button>
+            <button type="button" data-season="estate" aria-pressed="false">Estate</button>
+          </div>
+        </div>
+        <div class="seasons" id="seasonInfo"></div>
+        <div class="card setting" id="seasonEditor" hidden></div>
+        <p class="muted small">Ogni 30 minuti lo script controlla l'acqua calda. Se è sotto il minimo della fascia in corso, accende il Boost. Lo scaldabagno lo spegne da solo quando ha finito.</p>
         <div>
-          <p style="font-weight:600">Programma attivo</p>
-          <p class="muted small" id="autoText">Se lo spegni, lo script non accende più il Boost da solo.</p>
+          <div class="dayline" id="dayline" aria-hidden="true"></div>
+          <div class="dayscale"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
         </div>
-        <label class="switch"><input type="checkbox" id="autoSwitch" aria-label="Programma attivo"><span></span></label>
-      </div>
-    </section>
+        <div class="card periods" id="periods"></div>
+        <button class="btn sm quiet" type="button" id="btnAdd" style="justify-self:start">+ Aggiungi una fascia</button>
+        <div class="savebar" id="savebar" hidden>
+          <span class="small">Modifiche non salvate</span>
+          <span style="display:flex; gap:6px">
+            <button class="btn sm quiet" type="button" id="btnDiscard">Annulla</button>
+            <button class="btn sm primary" type="button" id="btnSave">Salva</button>
+          </span>
+        </div>
+        <p class="status" id="progStatus" role="status" aria-live="polite"></p>
+        <div class="card toggle">
+          <div>
+            <p style="font-weight:600">Programma attivo</p>
+            <p class="muted small">Se lo spegni, lo script non accende più il Boost da solo.</p>
+          </div>
+          <label class="switch"><input type="checkbox" id="autoSwitch" aria-label="Programma attivo"><span></span></label>
+        </div>
+      </section>
 
-    <!-- 3. andamento -->
-    <section class="sec" aria-labelledby="lvTitle">
-      <div class="sechead">
-        <h2 id="lvTitle">Andamento</h2>
-        <div class="seg" role="group" aria-label="Periodo">
-          <button type="button" data-range="1" aria-pressed="true">24 ore</button>
-          <button type="button" data-range="3" aria-pressed="false">3 giorni</button>
-          <button type="button" data-range="7" aria-pressed="false">7 giorni</button>
-        </div>
-      </div>
-      <div class="card chartbox" id="lvBox">
-        <div id="lvChart"></div>
-        <div class="legend">
-          <span><i style="background:var(--hot)"></i>Acqua calda</span>
-          <span><i style="background:transparent;border-top:2px dashed var(--muted);height:0;border-radius:0"></i>Minimo della fascia</span>
-          <span><i style="background:var(--hot-soft)"></i>Boost acceso</span>
-        </div>
-      </div>
-    </section>
+      <!-- 6. impostazioni -->
+      <section class="sec o6" aria-labelledby="setTitle">
+        <h2 id="setTitle">Impostazioni</h2>
 
-    <!-- 4. consumi -->
-    <section class="sec" aria-labelledby="csTitle">
-      <div class="sechead">
-        <h2 id="csTitle">Consumi</h2>
-        <div class="seg" role="group" aria-label="Misura">
-          <button type="button" data-cons="kwh" aria-pressed="true">Corrente</button>
-          <button type="button" data-cons="litri" aria-pressed="false">Acqua calda</button>
+        <div class="card setting" id="setVac">
+          <div>
+            <h3>Vacanza</h3>
+            <p class="muted small">Lo scaldabagno va in assenza (non scalda) e lo script si ferma. Al rientro riparte da solo: metti il rientro qualche ora prima del vostro arrivo, così trovate l'acqua calda.</p>
+          </div>
+          <div id="vacBody" class="setting" style="padding:0"></div>
+          <p class="status" id="vacStatus" role="status" aria-live="polite"></p>
         </div>
-      </div>
-      <div class="kpis" id="kpis"></div>
-      <div class="card chartbox"><div id="csChart"></div></div>
-      <div class="price">
-        <label for="price">Prezzo della corrente</label>
-        <input id="price" type="number" step="0.01" min="0" inputmode="decimal" value="0.25">
-        <span>€/kWh (serve solo per stimare il costo)</span>
-      </div>
-    </section>
 
-    <!-- 5. dettagli -->
-    <details class="card" id="details">
-      <summary>Dettagli tecnici</summary>
-      <dl class="dl" id="dl"></dl>
-    </details>
-    <details class="card">
-      <summary>Ultimi Boost accesi</summary>
-      <div class="events" id="events"></div>
-    </details>
+        <div class="card setting" id="setNotif">
+          <div class="setting-head">
+            <div>
+              <h3>Notifiche sul telefono</h3>
+              <p class="muted small">Con l'app gratuita ntfy.</p>
+            </div>
+            <label class="switch"><input type="checkbox" id="nOn" aria-label="Notifiche attive"><span></span></label>
+          </div>
+          <div id="nBody" class="setting" style="padding:0"></div>
+          <p class="status" id="nStatus" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="card setting" id="setSun">
+          <div class="setting-head">
+            <div>
+              <h3>Pannelli solari <span class="muted small" style="font-family:var(--body);font-weight:500">· facoltativo</span></h3>
+              <p class="muted small">Nelle fasce segnate «col sole», accende il Boost solo quando i pannelli producono abbastanza.</p>
+            </div>
+            <label class="switch"><input type="checkbox" id="sOn" aria-label="Usa i pannelli solari"><span></span></label>
+          </div>
+          <div id="sBody" class="setting" style="padding:0"></div>
+          <p class="status" id="sStatus" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="card setting" id="setTemp">
+          <div>
+            <h3>Temperatura dell'acqua</h3>
+            <p class="muted small">Più alta = più acqua calda nel serbatoio, ma consuma un po' di più.</p>
+          </div>
+          <div class="row">
+            <div class="stepper">
+              <button type="button" id="tMinus" aria-label="Abbassa">−</button>
+              <output id="tVal">– °C</output>
+              <button type="button" id="tPlus" aria-label="Alza">+</button>
+            </div>
+            <button class="btn sm primary" type="button" id="tApply" hidden>Applica</button>
+          </div>
+          <p class="status" id="tStatus" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+    </div>
+
+    <div class="col b">
+      <!-- 3. andamento -->
+      <section class="sec o3" aria-labelledby="lvTitle">
+        <div class="sechead">
+          <h2 id="lvTitle">Andamento</h2>
+          <div class="seg" role="group" aria-label="Periodo">
+            <button type="button" data-range="1" aria-pressed="true">24 ore</button>
+            <button type="button" data-range="3" aria-pressed="false">3 giorni</button>
+            <button type="button" data-range="7" aria-pressed="false">7 giorni</button>
+          </div>
+        </div>
+        <div class="card chartbox" id="lvBox">
+          <div id="lvChart"></div>
+          <div class="legend">
+            <span><i style="background:var(--hot)"></i>Acqua calda</span>
+            <span><i style="background:transparent;border-top:2px dashed var(--muted);height:0;border-radius:0"></i>Minimo della fascia</span>
+            <span><i style="background:var(--hot-soft)"></i>Boost acceso</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. consumi -->
+      <section class="sec o4" aria-labelledby="csTitle">
+        <div class="sechead">
+          <h2 id="csTitle">Consumi</h2>
+          <div class="seg" role="group" aria-label="Misura">
+            <button type="button" data-cons="litri" aria-pressed="true">Acqua calda</button>
+            <button type="button" data-cons="kwh" aria-pressed="false">Corrente</button>
+          </div>
+        </div>
+        <div class="kpis" id="kpis"></div>
+        <p class="note" id="consNote"></p>
+        <div class="card chartbox" id="csBox">
+          <div style="padding:0 6px 6px">
+            <div class="seg" role="group" aria-label="Raggruppa per">
+              <button type="button" data-view="giorni" aria-pressed="true">30 giorni</button>
+              <button type="button" data-view="settimana" aria-pressed="false">Settimana</button>
+              <button type="button" data-view="mesi" aria-pressed="false">Mesi</button>
+            </div>
+          </div>
+          <p class="small muted" id="csCaption" style="padding:2px 8px 0"></p>
+          <div id="csChart"></div>
+        </div>
+        <div class="price">
+          <label for="price">Prezzo della corrente</label>
+          <input id="price" type="number" step="0.01" min="0" inputmode="decimal" value="0.25">
+          <span>€/kWh (serve solo per stimare il costo)</span>
+        </div>
+      </section>
+
+      <!-- 5. consigli -->
+      <section class="sec o5" aria-labelledby="advTitle">
+        <h2 id="advTitle">Consigli</h2>
+        <div class="card advice" id="advice"></div>
+      </section>
+
+      <!-- 7. dettagli -->
+      <div class="sec o7">
+        <details class="card">
+          <summary>Dettagli tecnici</summary>
+          <dl class="dl" id="dl"></dl>
+        </details>
+        <details class="card">
+          <summary>Ultimi Boost accesi</summary>
+          <div class="events" id="events"></div>
+        </details>
+      </div>
+    </div>
 
     <footer>
       <a id="lnkActions" href="#" target="_blank" rel="noopener">Esecuzioni su GitHub</a>
-      <button type="button" id="btnLogout">Scollega questo telefono</button>
+      <button type="button" id="btnLogout">Scollega questo dispositivo</button>
     </footer>
   </div>
 </div>
@@ -344,14 +469,21 @@ const OWNER = "21sba", REPO = "AutoCozyTouch", WORKFLOW = "boost.yml";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const TZ = "Europe/Rome";
 const SHOWER_L = 45;           // litri a 40 °C per una doccia
+const MONTHS = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+const MONTHS_S = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+const WEEK = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+const WEEK_L = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
 const $ = (id) => document.getElementById(id);
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
   del(k) { try { localStorage.removeItem(k); } catch {} },
 };
-const S = { token: store.get("gh_token"), stato: null, storico: [], consumi: null, config: null, configSha: null,
-  draft: null, openId: null, range: 1, cons: "kwh", busy: false };
+const S = {
+  token: store.get("gh_token"), stato: null, storico: [], consumi: null, config: null,
+  draft: null, openId: null, season: null, range: 1, cons: "litri", view: "giorni", busy: false,
+  tTarget: null, seasonEdit: false,
+};
 let uid = 0;
 
 /* ================= GitHub ================= */
@@ -364,7 +496,7 @@ async function gh(path, opts = {}) {
   if (res.status === 401) throw new Error("La chiave GitHub non è valida o è scaduta.");
   if (res.status === 403) throw new Error("La chiave non ha i permessi giusti (servono Actions e Contents in lettura e scrittura).");
   if (res.status === 404) { const e = new Error("non trovato"); e.notFound = true; throw e; }
-  if (res.status === 409) throw new Error("Il programma è cambiato nel frattempo: ricarica la pagina e riprova.");
+  if (res.status === 409) throw new Error("Le impostazioni sono cambiate nel frattempo: ricarica la pagina e riprova.");
   if (!res.ok) throw new Error(`GitHub ha risposto con un errore (${res.status}). Riprova tra poco.`);
   if (res.status === 204) return null;
   return opts.raw ? res.text() : res.json();
@@ -382,58 +514,103 @@ async function loadAll() {
   if (stato.status === "fulfilled") S.stato = JSON.parse(stato.value);
   if (storico.status === "fulfilled") S.storico = parseCsv(storico.value);
   if (consumi.status === "fulfilled") S.consumi = JSON.parse(consumi.value);
-  if (cfg.status === "fulfilled") { S.config = JSON.parse(unb64(cfg.value.content)); S.configSha = cfg.value.sha; }
+  S.config = normalizeConfig(cfg.status === "fulfilled" ? JSON.parse(unb64(cfg.value.content)) : {});
 }
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/); const head = lines.shift().split(",");
   return lines.map((l) => { const c = l.split(","); const o = {}; head.forEach((h, i) => (o[h] = c[i] ?? ""));
-    return { t: new Date(o.ora), pct: num(o.percentuale), boost: o.boost === "1", soglia: num(o.soglia), azione: o.azione }; })
+    return { t: new Date(o.ora), pct: num(o.percentuale), boost: o.boost === "1", soglia: num(o.soglia), azione: o.azione, power: num(o.potenza_w) }; })
     .filter((r) => !isNaN(r.t) && r.pct != null).sort((a, b) => a.t - b.t);
 }
 function num(v) { if (v === "" || v == null) return null; const n = Number(v); return isFinite(n) ? n : null; }
 
-async function dispatch(modalita) {
+async function dispatch(modalita, extra = {}, statusId = "actStatus") {
   const since = Date.now();
   await gh(`/actions/workflows/${WORKFLOW}/dispatches`, { method: "POST",
-    body: JSON.stringify({ ref: "main", inputs: { modalita } }), headers: { "Content-Type": "application/json" } });
+    body: JSON.stringify({ ref: "main", inputs: { modalita, ...extra } }), headers: { "Content-Type": "application/json" } });
   const deadline = since + 4 * 60 * 1000; let run = null;
   while (Date.now() < deadline) {
     await sleep(run ? 5000 : 3000);
     const list = await gh(`/actions/workflows/${WORKFLOW}/runs?event=workflow_dispatch&per_page=5`);
     run = (list.workflow_runs || []).find((r) => new Date(r.created_at).getTime() >= since - 15000) || null;
     if (run && run.status === "completed") return run;
-    setStatus("actStatus", run ? "Sto parlando con lo scaldabagno… (di solito meno di un minuto)" : "Richiesta inviata…");
+    setStatus(statusId, run ? "Sto parlando con lo scaldabagno… (di solito meno di un minuto)" : "Richiesta inviata…");
   }
   throw new Error("Ci sta mettendo più del solito. Tocca «Aggiorna» tra qualche minuto.");
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function saveConfig(newCfg, message) {
-  const body = { message, content: b64(JSON.stringify(newCfg, null, 2) + "\n"), branch: "main" };
-  if (S.configSha) body.sha = S.configSha;
-  const res = await gh("/contents/config.json", { method: "PUT", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
-  S.config = newCfg; S.configSha = res.content.sha;
+
+function cleanConfig(c) {
+  const strip = (l) => sortedSlots(l).map(({ da, soglia, nota, sole }) => ({ da, soglia: soglia ?? null, nota: (nota || "").trim(), sole: !!sole }));
+  return { automatico: c.automatico !== false, stagioni: c.stagioni,
+    programmi: { inverno: strip(c.programmi.inverno), estate: strip(c.programmi.estate) },
+    vacanza: c.vacanza || null, notifiche: c.notifiche, sole: c.sole };
+}
+async function saveConfig(mutate, message) {
+  // rilegge l'ultima versione, applica la modifica e salva
+  const latest = await gh("/contents/config.json?ref=main").catch((e) => { if (e.notFound) return null; throw e; });
+  const base = normalizeConfig(latest ? JSON.parse(unb64(latest.content)) : {});
+  const next = cleanConfig(mutate(JSON.parse(JSON.stringify(base))));
+  const body = { message, content: b64(JSON.stringify(next, null, 2) + "\n"), branch: "main" };
+  if (latest) body.sha = latest.sha;
+  await gh("/contents/config.json", { method: "PUT", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+  S.config = normalizeConfig(next);
+}
+
+/* ================= configurazione ================= */
+const DEFAULT_SLOTS = [
+  { da: "01:00", soglia: null, nota: "Notte: non tocca nulla" },
+  { da: "04:00", soglia: 85, nota: "Pieno per le 7:30" },
+  { da: "07:30", soglia: 50, nota: "Docce del mattino" },
+  { da: "10:00", soglia: 85, nota: "Ricarica con il sole", sole: true },
+  { da: "16:00", soglia: 50, nota: "Docce della sera" },
+  { da: "21:00", soglia: 30, nota: "Scorta per la notte" },
+];
+function normalizeConfig(raw) {
+  const c = raw || {};
+  let inv, est;
+  if (c.programmi && (c.programmi.inverno || c.programmi.estate)) { inv = c.programmi.inverno || c.programmi.estate; est = c.programmi.estate || c.programmi.inverno; }
+  else if (c.fasce && c.fasce.length) { inv = est = c.fasce; }
+  else { inv = est = DEFAULT_SLOTS; }
+  const copy = (l) => l.map((f) => ({ da: f.da, soglia: f.soglia ?? null, nota: f.nota || "", sole: !!f.sole }));
+  return {
+    automatico: c.automatico !== false,
+    stagioni: { estate_dal: (c.stagioni && c.stagioni.estate_dal) || "04-01", inverno_dal: (c.stagioni && c.stagioni.inverno_dal) || "10-01" },
+    programmi: { inverno: copy(inv), estate: copy(est) },
+    vacanza: c.vacanza && c.vacanza.dal && c.vacanza.al ? { dal: c.vacanza.dal, al: c.vacanza.al } : null,
+    notifiche: { attive: false, topic: "", sotto: 20, boost: true, offline: true, ...(c.notifiche || {}) },
+    sole: { attivo: false, surplus_kw: 2, minimo_sempre: 30, ...(c.sole || {}) },
+  };
+}
+function seasonOf(stagioni, d) {
+  const md = romeParts(d).md; const e = stagioni.estate_dal, i = stagioni.inverno_dal;
+  if (e <= i) return e <= md && md < i ? "estate" : "inverno";
+  return i <= md && md < e ? "inverno" : "estate";
 }
 
 /* ================= utilità ================= */
 const fmtTime = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
 const fmtDay = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: TZ, weekday: "short", day: "numeric" }).format(d);
+const fmtDate = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" }).format(d);
 const fmtDayMonth = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: "UTC", day: "numeric", month: "short" }).format(d);
-const fmtN = (v, d = 0) => v == null ? "–" : v.toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtN = (v, d = 0) => v == null || isNaN(v) ? "–" : Number(v).toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
 function ago(d) {
   const m = Math.round((Date.now() - d.getTime()) / 60000);
   if (m < 1) return "adesso"; if (m < 60) return `${m} min fa`;
   const h = Math.floor(m / 60); if (h < 24) return `${h} h fa`; return `${Math.floor(h / 24)} giorni fa`;
 }
-function romeMinutes(d) {
-  const p = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
-  return Number(p.find((x) => x.type === "hour").value) % 24 * 60 + Number(p.find((x) => x.type === "minute").value);
+function romeParts(d) {
+  const p = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
+  const g = (t) => p.find((x) => x.type === t).value;
+  return { y: g("year"), mo: g("month"), d: g("day"), h: Number(g("hour")) % 24, mi: Number(g("minute")), md: `${g("month")}-${g("day")}`, ymd: `${g("year")}-${g("month")}-${g("day")}` };
 }
+const romeMinutes = (d) => { const p = romeParts(d); return p.h * 60 + p.mi; };
 const toMin = (s) => { const [h, m] = String(s).split(":").map(Number); return h * 60 + m; };
-const hhmm = (m) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const hhmm = (m) => { const x = ((m % 1440) + 1440) % 1440; return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 function setStatus(id, text, kind) { const el = $(id); el.textContent = text || ""; el.className = "status" + (kind ? " " + kind : ""); }
-
-// litri a 40 °C per ogni punto percentuale, letto dallo scaldabagno
+// "il 50%", "l'85%", "l'8%", "l'11%"
+function ilPct(v) { const n = Math.round(v); const apos = n === 1 || n === 8 || n === 11 || n === 18 || (n >= 80 && n < 90); return `${apos ? "l'" : "il "}${fmtN(n)}%`; }
 function litresPerPct() {
   const s = S.stato;
   if (s && s.litri_v40 && s.percentuale) return s.litri_v40 / s.percentuale;
@@ -441,60 +618,61 @@ function litresPerPct() {
   return 5;
 }
 const showersAt = (pct) => Math.floor(pct * litresPerPct() / SHOWER_L);
-// "il 50%", "l'85%", "l'8%", "l'11%"
-function ilPct(v) { const n = Math.round(v); const apos = n === 1 || n === 8 || n === 11 || n === 18 || (n >= 80 && n < 90); return `${apos ? "l'" : "il "}${fmtN(n)}%`; }
 const docce = (n) => n === 1 ? "1 doccia" : `${n} docce`;
+// "2026-12-20T08:00" in ora italiana -> Date
+function localToDate(s) {
+  const [d, t] = s.split("T"); const [y, mo, da] = d.split("-").map(Number); const [h, mi] = (t || "00:00").split(":").map(Number);
+  const want = Date.UTC(y, mo - 1, da, h, mi); let guess = want;
+  for (let i = 0; i < 3; i++) { const p = romeParts(new Date(guess)); guess -= Date.UTC(+p.y, +p.mo - 1, +p.d, p.h, p.mi) - want; }
+  return new Date(guess);
+}
+const mdLabel = (md) => { const [m, d] = md.split("-").map(Number); return `${d} ${MONTHS[m - 1]}`; };
+function mdMinusOne(md) { const [m, d] = md.split("-").map(Number); const dt = new Date(Date.UTC(2023, m - 1, d - 1)); return `${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]}`; }
+const vacWhen = (v) => `dal ${fmtDate(localToDate(v.dal))} alle ${fmtTime(localToDate(v.dal))} al ${fmtDate(localToDate(v.al))} alle ${fmtTime(localToDate(v.al))}`;
 
 /* ================= programma: modello ================= */
 function sortedSlots(list) { return list.slice().sort((a, b) => toMin(a.da) - toMin(b.da)); }
-function workingSlots() {
-  if (!S.draft) S.draft = sortedSlots(((S.config && S.config.fasce) || []).map((f) => ({ ...f, _id: ++uid })));
+function ensureDraft() {
+  if (!S.draft) {
+    const c = S.config;
+    S.draft = {
+      programmi: { inverno: c.programmi.inverno.map((f) => ({ ...f, _id: ++uid })), estate: c.programmi.estate.map((f) => ({ ...f, _id: ++uid })) },
+      stagioni: { ...c.stagioni },
+    };
+  }
   return S.draft;
 }
-function withEnds(list) {
-  const l = sortedSlots(list);
-  return l.map((f, i) => ({ ...f, a: l[(i + 1) % l.length].da }));
-}
-function currentSlot(list, m) {
-  const l = sortedSlots(list); if (!l.length) return null;
-  let cur = l[l.length - 1]; l.forEach((f) => { if (toMin(f.da) <= m) cur = f; }); return cur;
-}
-const isDirty = () => {
-  if (!S.draft) return false;
-  const a = JSON.stringify(sortedSlots(S.draft).map(({ da, soglia, nota }) => ({ da, soglia, nota })));
-  const b = JSON.stringify(sortedSlots((S.config && S.config.fasce) || []).map(({ da, soglia, nota }) => ({ da, soglia: soglia ?? null, nota: nota ?? "" })));
-  return a !== b;
-};
-function slotFill(s) {
-  if (s == null) return "var(--sunk)";
-  return `color-mix(in srgb, var(--hot) ${Math.round(20 + 70 * s / 100)}%, var(--surface))`;
-}
-function goalText(s) {
-  return s == null ? "Non fa niente" : `Tiene almeno ${ilPct(s)}`;
-}
+const draftSlots = () => ensureDraft().programmi[S.season];
+function withEnds(list) { const l = sortedSlots(list); return l.map((f, i) => ({ ...f, a: l[(i + 1) % l.length].da })); }
+function currentSlot(list, m) { const l = sortedSlots(list); if (!l.length) return null; let cur = l[l.length - 1]; l.forEach((f) => { if (toMin(f.da) <= m) cur = f; }); return cur; }
+const sigList = (l) => sortedSlots(l).map(({ da, soglia, nota, sole }) => [da, soglia ?? null, (nota || "").trim(), !!sole]);
+const sig = (p) => JSON.stringify({ i: sigList(p.programmi.inverno), e: sigList(p.programmi.estate), s: p.stagioni });
+const isDirty = () => !!S.draft && sig(S.draft) !== sig(S.config);
+const slotFill = (f) => f.soglia == null ? "var(--sunk)" : `color-mix(in srgb, var(--hot) ${Math.round(20 + 70 * f.soglia / 100)}%, var(--surface))`;
+const sunActive = () => !!(S.config && S.config.sole && S.config.sole.attivo);
+function activeVacation() { const v = S.config && S.config.vacanza; return v && localToDate(v.al) > new Date() ? v : null; }
 
 /* ================= render: risposta ================= */
 function renderHero() {
   const s = S.stato;
   if (!s) { $("showers").textContent = "–"; $("verdictText").textContent = "Nessun dato ancora"; $("state").textContent = "Tocca «Aggiorna» per leggere lo scaldabagno."; drawTank(null); return; }
-  const t = new Date(s.ora);
-  $("fresh").textContent = `Aggiornato ${ago(t)}`;
+  $("fresh").textContent = `Aggiornato ${ago(new Date(s.ora))}`;
   const n = s.litri_v40 != null ? Math.floor(s.litri_v40 / SHOWER_L) : showersAt(s.percentuale);
-  const v = $("verdict");
   const [cls, txt] = n >= 6 ? ["good", "Acqua calda in abbondanza"] : n >= 3 ? ["good", "Acqua calda sufficiente"] : n >= 1 ? ["warn", "Acqua calda quasi finita"] : ["bad", "Acqua calda finita"];
-  v.className = "verdict " + cls; $("verdictText").textContent = txt;
-  const T = s.temperature || {};
-  const temp = T.alto ?? T.media ?? T.centro;
-  $("showers").innerHTML = `${n === 1 ? "1 doccia" : n + " docce"}<span>pronte adesso${temp != null ? ` · <b class="temp">${fmtN(temp, 0)}&nbsp;°C</b>` : ""}</span>`;
+  $("verdict").className = "verdict " + cls; $("verdictText").textContent = txt;
+  const T = s.temperature || {}; const temp = T.alto ?? T.media ?? T.centro;
+  $("showers").innerHTML = `${docce(n)}<span>pronte adesso${temp != null ? ` · <b class="temp">${fmtN(temp, 0)}&nbsp;°C</b>` : ""}</span>`;
   const heating = (s.potenza_w || 0) > 50;
   $("state").innerHTML = s.disponibile === false ? "<b>Non raggiungibile</b>: lo scaldabagno non risponde al cloud."
     : s.boost ? "<b>Boost acceso</b>: sta scaldando al massimo."
     : heating ? "<b>Sta scaldando</b> da solo."
-    : "<b>A riposo</b>.";
-  if (s.assenza) $("state").innerHTML += " Modalità assenza attiva.";
+    : s.assenza ? "<b>In assenza</b>: non scalda." : "<b>A riposo</b>.";
   drawTank(s.percentuale, heating || s.boost);
   $("btnBoost").textContent = s.boost ? "Boost già acceso" : "Accendi il Boost";
   $("btnBoost").disabled = !!s.boost || S.busy;
+  const v = activeVacation(); const b = $("vacBanner");
+  if (v) { b.hidden = false; b.textContent = localToDate(v.dal) <= new Date() ? `In vacanza fino a ${fmtDate(localToDate(v.al))} alle ${fmtTime(localToDate(v.al))}. Lo script è fermo.` : `Vacanza programmata ${vacWhen(v)}.`; }
+  else b.hidden = true;
 }
 function drawTank(pct, warm) {
   const W = 96, H = 168, x = 8, y = 10, w = 80, h = 152, r = 34;
@@ -514,51 +692,71 @@ function drawTank(pct, warm) {
   </svg>`;
 }
 function renderPlanNow() {
-  const cfg = S.config || {}; const list = (cfg.fasce || []);
-  const box = $("planNow");
-  if (!list.length) { box.innerHTML = '<p class="muted">Nessun programma impostato.</p>'; return; }
+  const cfg = S.config; const box = $("planNow");
+  const season = seasonOf(cfg.stagioni, new Date()); const list = cfg.programmi[season];
   const m = romeMinutes(new Date());
-  const ends = withEnds(list); const cur = ends.find((f) => f.da === currentSlot(list, m).da);
+  const cur = withEnds(list).find((f) => f.da === currentSlot(list, m).da);
+  const v = cfg.vacanza; const inVac = v && localToDate(v.dal) <= new Date() && new Date() < localToDate(v.al);
   let line;
-  if (cfg.automatico === false) line = "Il programma è in pausa: lo script non accende il Boost da solo.";
+  if (inVac) line = "In vacanza: lo script non accende il Boost.";
+  else if (!cfg.automatico) line = "Il programma è in pausa: lo script non accende il Boost da solo.";
   else if (cur.soglia == null) line = `Fino alle ${cur.a} lo script non tocca nulla e lascia fare allo scaldabagno.`;
   else {
-    const below = S.stato && S.stato.percentuale < cur.soglia;
-    line = below && !(S.stato && S.stato.boost)
-      ? `L'acqua calda è sotto il minimo di questa fascia (${fmtN(cur.soglia)}%): al prossimo controllo accende il Boost.`
+    const below = S.stato && S.stato.percentuale < cur.soglia && !S.stato.boost;
+    line = below ? `L'acqua calda è sotto il minimo di questa fascia (${fmtN(cur.soglia)}%): al prossimo controllo accende il Boost.`
       : `Fino alle ${cur.a} tiene almeno ${ilPct(cur.soglia)} (≈ ${docce(showersAt(cur.soglia))}). Se scende sotto, accende il Boost.`;
+    if (cur.sole && sunActive()) line += " In questa fascia aspetta che i pannelli producano abbastanza.";
   }
-  box.innerHTML = `<p class="eyebrow">Adesso · ${esc(cur.nota || "Fascia " + cur.da)}</p><p>${line}</p>`;
+  const sole = S.stato && S.stato.sole;
+  const sunLine = sunActive() && sole && !sole.errore ? `<p class="muted small">☀ Pannelli ${fmtN(sole.pv_kw, 1)} kW · casa ${fmtN(sole.casa_kw, 1)} kW</p>` : "";
+  box.innerHTML = `<p class="eyebrow">Adesso · ${esc(cur.nota || "Fascia " + cur.da)} · programma ${season === "estate" ? "estivo" : "invernale"}</p><p>${line}</p>${sunLine}`;
 }
 
 /* ================= render: programma ================= */
 function renderProgram() {
-  const list = withEnds(workingSlots());
+  const d = ensureDraft();
+  const live = seasonOf(d.stagioni, new Date());
+  if (!S.season) S.season = live;
+  document.querySelectorAll("[data-season]").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b.dataset.season === S.season));
+    b.innerHTML = (b.dataset.season === "inverno" ? "Inverno" : "Estate") + (b.dataset.season === live ? '<span class="inuse">• in uso</span>' : "");
+  });
+  const st = d.stagioni;
+  $("seasonInfo").innerHTML = (S.season === "estate" ? `<span>Estate: dal ${mdLabel(st.estate_dal)} al ${mdMinusOne(st.inverno_dal)}</span>` : `<span>Inverno: dal ${mdLabel(st.inverno_dal)} al ${mdMinusOne(st.estate_dal)}</span>`)
+    + `<button type="button" id="btnSeasonEdit">${S.seasonEdit ? "Chiudi" : "Cambia date"}</button>`;
+  renderSeasonEditor();
+
+  const list = withEnds(draftSlots());
   const m = romeMinutes(new Date());
-  const cur = currentSlot(list, m);
-  // striscia 24h
-  let segs = [];
+  const cur = S.season === live ? currentSlot(list, m) : null;
+  const segs = [];
   if (list.length) {
-    const last = list[list.length - 1];
-    if (toMin(list[0].da) > 0) segs.push({ from: 0, to: toMin(list[0].da), f: last });
+    if (toMin(list[0].da) > 0) segs.push({ from: 0, to: toMin(list[0].da), f: list[list.length - 1] });
     list.forEach((f, i) => segs.push({ from: toMin(f.da), to: i + 1 < list.length ? toMin(list[i + 1].da) : 1440, f }));
   }
-  $("dayline").innerHTML = segs.filter((s) => s.to > s.from).map((s) => `<div style="flex:${s.to - s.from};background:${slotFill(s.f.soglia)}"></div>`).join("")
-    + `<span class="now" style="left:calc(${(m / 1440 * 100).toFixed(2)}% - 1px)"></span>`;
-  // righe
+  $("dayline").innerHTML = segs.filter((s) => s.to > s.from).map((s) => `<div style="flex:${s.to - s.from};background:${slotFill(s.f)}">${s.f.sole && sunActive() && s.f.soglia != null && s.to - s.from >= 120 ? "☀" : ""}</div>`).join("")
+    + (cur ? `<span class="now" style="left:calc(${(m / 1440 * 100).toFixed(2)}% - 1px)"></span>` : "");
   $("periods").innerHTML = list.map((f) => {
-    const isCur = cur && f._id === cur._id;
-    const open = S.openId === f._id;
+    const isCur = cur && f._id === cur._id; const open = S.openId === f._id;
     const goal = f.soglia == null ? "Non fa niente" : `Tiene almeno ${ilPct(f.soglia)} <span class="muted">≈ ${docce(showersAt(f.soglia))}</span>`;
-    const row = `<button type="button" class="period${isCur ? " current" : ""}" data-id="${f._id}" aria-expanded="${open}">
+    return `<button type="button" class="period${isCur ? " current" : ""}" data-id="${f._id}" aria-expanded="${open}">
         <span class="when">${esc(f.da)}<small>→ ${esc(f.a)}</small></span>
-        <span class="what"><b>${esc(f.nota || "Fascia")}${isCur ? '<span class="tag">Adesso</span>' : ""}</b><span class="small"><span class="swatch" style="background:${slotFill(f.soglia)}"></span>${goal}</span></span>
+        <span class="what"><b>${esc(f.nota || "Fascia")}${isCur ? '<span class="tag">Adesso</span>' : ""}${f.sole && sunActive() && f.soglia != null ? '<span class="tag sun">☀ col sole</span>' : ""}</b><span class="small"><span class="swatch" style="background:${slotFill(f)}"></span>${goal}</span></span>
         <span class="chev" aria-hidden="true">${open ? "▾" : "›"}</span>
-      </button>`;
-    return row + (open ? editorHtml(f, list) : "");
+      </button>` + (open ? editorHtml(f, list) : "");
   }).join("");
   $("savebar").hidden = !isDirty();
-  $("autoSwitch").checked = (S.config || {}).automatico !== false;
+  $("autoSwitch").checked = S.config.automatico !== false;
+}
+function renderSeasonEditor() {
+  const box = $("seasonEditor"); box.hidden = !S.seasonEdit; if (!S.seasonEdit) return;
+  const st = ensureDraft().stagioni;
+  const pick = (id, md) => { const [m, d] = md.split("-").map(Number);
+    return `<span class="timepick"><select id="${id}D" aria-label="Giorno">${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}" ${i + 1 === d ? "selected" : ""}>${i + 1}</option>`).join("")}</select>
+      <select id="${id}M" aria-label="Mese">${MONTHS.map((n, i) => `<option value="${i + 1}" ${i + 1 === m ? "selected" : ""}>${n}</option>`).join("")}</select></span>`; };
+  box.innerHTML = `<div class="q"><span class="ql">L'estate inizia il</span>${pick("sE", st.estate_dal)}</div>
+    <div class="q"><span class="ql">L'inverno inizia il</span>${pick("sI", st.inverno_dal)}</div>
+    <p class="muted small">Il programma cambia da solo in queste date. Ricordati di salvare.</p>`;
 }
 function timeSelect(id, value) {
   const [h, mm] = value.split(":").map(Number);
@@ -567,23 +765,23 @@ function timeSelect(id, value) {
   return `<span class="timepick"><select id="${id}H" aria-label="Ora">${hours}</select><b>:</b><select id="${id}M" aria-label="Minuti">${mins.map((x) => `<option value="${x}" ${x === mm ? "selected" : ""}>${String(x).padStart(2, "0")}</option>`).join("")}</select></span>`;
 }
 function editorHtml(f, list) {
-  const idx = list.findIndex((x) => x._id === f._id);
-  const next = list[(idx + 1) % list.length];
+  const idx = list.findIndex((x) => x._id === f._id); const next = list[(idx + 1) % list.length];
   const s = f.soglia == null ? 50 : f.soglia;
-  return `<div class="editor" data-ed="${f._id}">
-    <label class="q"><span>Nome</span><input type="text" id="edName" value="${esc(f.nota)}" placeholder="Es. Docce del mattino" maxlength="40"></label>
-    <div class="q"><span>Inizia alle</span>${timeSelect("edStart", f.da)}
+  return `<div class="editor">
+    <label class="q"><span class="ql">Nome</span><input type="text" id="edName" value="${esc(f.nota)}" placeholder="Es. Docce del mattino" maxlength="40"></label>
+    <div class="q"><span class="ql">Inizia alle</span>${timeSelect("edStart", f.da)}
       <span class="muted small">Finisce alle ${esc(next.da)}, quando inizia «${esc(next.nota || "la fascia dopo")}».</span></div>
-    <div class="q"><span>Cosa deve fare</span>
+    <div class="q"><span class="ql">Cosa deve fare</span>
       <label class="choice"><input type="radio" name="edMode" value="keep" ${f.soglia != null ? "checked" : ""}>
         <span><span>Tenere sempre almeno un minimo di acqua calda</span>
-          <span class="slider" ${f.soglia == null ? "hidden" : ""} id="edSlider">
+          <span class="slider" ${f.soglia == null ? "hidden" : ""}>
             <input type="range" id="edPct" min="10" max="95" step="5" value="${s}" aria-label="Minimo di acqua calda">
             <span class="read"><span>Minimo: <b id="edPctV">${s}%</b></span><span class="muted" id="edPctD">≈ ${docce(showersAt(s))}</span></span>
             <span class="muted small">Se scende sotto, accende il Boost.</span>
           </span></span></label>
       <label class="choice"><input type="radio" name="edMode" value="none" ${f.soglia == null ? "checked" : ""}>
         <span><span>Non fare niente</span><span class="muted small">Lascia fare allo scaldabagno, utile di notte.</span></span></label>
+      ${sunActive() && f.soglia != null ? `<label class="check"><input type="checkbox" id="edSun" ${f.sole ? "checked" : ""}><span>☀ Aspetta che i pannelli producano abbastanza<br><span class="muted small">Accende il Boost solo con il sole, a meno che l'acqua scenda sotto il ${fmtN(S.config.sole.minimo_sempre)}%.</span></span></label>` : ""}
     </div>
     <div class="row">
       <button class="btn sm quiet danger" type="button" id="edDelete" ${list.length <= 1 ? "disabled" : ""}>Elimina fascia</button>
@@ -591,59 +789,55 @@ function editorHtml(f, list) {
     </div>
   </div>`;
 }
-function editing() { return S.draft && S.draft.find((x) => x._id === S.openId); }
+const editing = () => draftSlots().find((x) => x._id === S.openId);
 
 $("periods").addEventListener("click", (e) => {
   const row = e.target.closest(".period");
   if (row) { const id = Number(row.dataset.id); S.openId = S.openId === id ? null : id; renderProgram(); return; }
   if (e.target.id === "edDone") { S.openId = null; renderProgram(); return; }
-  if (e.target.id === "edDelete") { S.draft = S.draft.filter((x) => x._id !== S.openId); S.openId = null; renderProgram(); }
+  if (e.target.id === "edDelete") { ensureDraft().programmi[S.season] = draftSlots().filter((x) => x._id !== S.openId); S.openId = null; renderProgram(); }
 });
 $("periods").addEventListener("input", (e) => {
-  const f = editing(); if (!f) return;
-  const t = e.target;
+  const f = editing(); if (!f) return; const t = e.target;
   if (t.id === "edName") { f.nota = t.value; $("savebar").hidden = !isDirty(); return; }
-  if (t.id === "edPct") { f.soglia = Number(t.value); $("edPctV").textContent = t.value + "%"; $("edPctD").textContent = "≈ " + docce(showersAt(f.soglia)); refreshProgramLight(); return; }
+  if (t.id === "edPct") {
+    f.soglia = Number(t.value); $("edPctV").textContent = t.value + "%"; $("edPctD").textContent = "≈ " + docce(showersAt(f.soglia));
+    const row = document.querySelector(`.period[data-id="${S.openId}"] .what .small`);
+    if (row) row.innerHTML = `<span class="swatch" style="background:${slotFill(f)}"></span>Tiene almeno ${ilPct(f.soglia)} <span class="muted">≈ ${docce(showersAt(f.soglia))}</span>`;
+    $("savebar").hidden = !isDirty();
+  }
 });
 $("periods").addEventListener("change", (e) => {
-  const f = editing(); if (!f) return;
-  const t = e.target;
+  const f = editing(); if (!f) return; const t = e.target;
   if (t.name === "edMode") { f.soglia = t.value === "none" ? null : Number($("edPct").value); renderProgram(); return; }
+  if (t.id === "edSun") { f.sole = t.checked; renderProgram(); return; }
   if (t.id === "edStartH" || t.id === "edStartM") {
     const nv = hhmm(Number($("edStartH").value) * 60 + Number($("edStartM").value));
-    if (S.draft.some((x) => x._id !== f._id && x.da === nv)) { setStatus("progStatus", `C'è già una fascia che inizia alle ${nv}.`, "err"); renderProgram(); return; }
+    if (draftSlots().some((x) => x._id !== f._id && x.da === nv)) { setStatus("progStatus", `C'è già una fascia che inizia alle ${nv}.`, "err"); renderProgram(); return; }
     f.da = nv; setStatus("progStatus", ""); renderProgram();
   }
 });
-function refreshProgramLight() {
-  // aggiorna striscia, etichetta della riga aperta e barra di salvataggio senza ridisegnare l'editor
-  const list = withEnds(S.draft);
-  const f = editing();
-  const row = document.querySelector(`.period[data-id="${S.openId}"] .what .small`);
-  if (row && f) row.innerHTML = `<span class="swatch" style="background:${slotFill(f.soglia)}"></span>Tiene almeno ${ilPct(f.soglia)} <span class="muted">≈ ${docce(showersAt(f.soglia))}</span>`;
-  const m = romeMinutes(new Date()); const segs = [];
-  if (list.length) {
-    if (toMin(list[0].da) > 0) segs.push({ from: 0, to: toMin(list[0].da), f: list[list.length - 1] });
-    list.forEach((x, i) => segs.push({ from: toMin(x.da), to: i + 1 < list.length ? toMin(list[i + 1].da) : 1440, f: x }));
-  }
-  $("dayline").innerHTML = segs.filter((s) => s.to > s.from).map((s) => `<div style="flex:${s.to - s.from};background:${slotFill(s.f.soglia)}"></div>`).join("")
-    + `<span class="now" style="left:calc(${(m / 1440 * 100).toFixed(2)}% - 1px)"></span>`;
-  $("savebar").hidden = !isDirty();
-}
+$("seasonInfo").addEventListener("click", (e) => { if (e.target.id === "btnSeasonEdit") { S.seasonEdit = !S.seasonEdit; renderProgram(); } });
+$("seasonEditor").addEventListener("change", () => {
+  const md = (p) => `${String($(p + "M").value).padStart(2, "0")}-${String($(p + "D").value).padStart(2, "0")}`;
+  const st = ensureDraft().stagioni; const e = md("sE"), i = md("sI");
+  if (e === i) { setStatus("progStatus", "Estate e inverno non possono iniziare lo stesso giorno.", "err"); return; }
+  st.estate_dal = e; st.inverno_dal = i; setStatus("progStatus", ""); S.season = null; renderProgram();
+});
+document.querySelectorAll("[data-season]").forEach((b) => b.addEventListener("click", () => { S.season = b.dataset.season; S.openId = null; renderProgram(); renderAdvice(); }));
 $("btnAdd").addEventListener("click", () => {
-  const list = workingSlots(); const used = new Set(list.map((x) => x.da));
+  const list = draftSlots(); const used = new Set(list.map((x) => x.da));
   let h = 12; while (used.has(hhmm(h * 60)) && h < 23) h++;
-  const f = { da: hhmm(h * 60), soglia: 50, nota: "Nuova fascia", _id: ++uid };
+  const f = { da: hhmm(h * 60), soglia: 50, nota: "Nuova fascia", sole: false, _id: ++uid };
   list.push(f); S.openId = f._id; renderProgram();
   const ed = document.querySelector(".editor"); if (ed) ed.scrollIntoView({ block: "nearest", behavior: "smooth" });
 });
-$("btnDiscard").addEventListener("click", () => { S.draft = null; S.openId = null; setStatus("progStatus", ""); renderProgram(); });
+$("btnDiscard").addEventListener("click", () => { S.draft = null; S.openId = null; S.season = null; S.seasonEdit = false; setStatus("progStatus", ""); renderProgram(); });
 $("btnSave").addEventListener("click", async () => {
-  const list = sortedSlots(S.draft).map(({ da, soglia, nota }) => ({ da, soglia, nota: (nota || "").trim() }));
-  const btn = $("btnSave"); btn.disabled = true; setStatus("progStatus", "Salvo…");
+  const d = ensureDraft(); const btn = $("btnSave"); btn.disabled = true; setStatus("progStatus", "Salvo…");
   try {
-    await saveConfig({ automatico: (S.config || {}).automatico !== false, fasce: list }, "Programma modificato dalla dashboard");
-    S.draft = null; S.openId = null; renderProgram(); renderPlanNow();
+    await saveConfig((c) => { c.programmi = d.programmi; c.stagioni = d.stagioni; return c; }, "Programma modificato dalla dashboard");
+    S.draft = null; S.openId = null; S.seasonEdit = false; renderProgram(); renderPlanNow();
     setStatus("progStatus", "Salvato. Vale dal prossimo controllo, entro 30 minuti.", "ok");
   } catch (e) { setStatus("progStatus", e.message, "err"); }
   finally { btn.disabled = false; }
@@ -651,7 +845,7 @@ $("btnSave").addEventListener("click", async () => {
 $("autoSwitch").addEventListener("change", async (e) => {
   const on = e.target.checked; e.target.disabled = true;
   try {
-    await saveConfig({ ...(S.config || {}), automatico: on, fasce: (S.config && S.config.fasce) || [] }, on ? "Programma attivato dalla dashboard" : "Programma in pausa dalla dashboard");
+    await saveConfig((c) => { c.automatico = on; return c; }, on ? "Programma attivato dalla dashboard" : "Programma in pausa dalla dashboard");
     setStatus("progStatus", on ? "Programma attivo." : "Programma in pausa: lo script registra i dati ma non accende il Boost.", "ok");
     renderPlanNow();
   } catch (err) { e.target.checked = !on; setStatus("progStatus", err.message, "err"); }
@@ -663,8 +857,8 @@ function renderLevel() {
   const box = $("lvChart");
   const end = new Date(); const start = new Date(end.getTime() - S.range * 86400000);
   const rows = S.storico.filter((r) => r.t >= start);
-  if (rows.length < 2) { box.innerHTML = '<div class="empty">Il grafico si riempie da solo, con un punto ogni 30 minuti. Torna tra qualche ora.</div>'; return; }
-  const W = Math.max(300, Math.round(box.clientWidth || 340)), H = 220, L = 34, R = 18, T = 10, B = 26;
+  if (rows.length < 2) { box.innerHTML = '<div class="empty">Il grafico si riempie da solo, con un punto ogni 30 minuti.</div>'; return; }
+  const W = Math.max(300, Math.round(box.clientWidth || 340)), H = W > 600 ? 260 : 220, L = 38, R = 18, T = 10, B = 26;
   const X = (d) => L + (d - start) / (end - start) * (W - L - R);
   const Y = (v) => T + (100 - v) / 100 * (H - T - B);
   let grid = "";
@@ -672,7 +866,7 @@ function renderLevel() {
     grid += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/>`;
     grid += `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" font-family="var(--mono)" fill="var(--muted)">${v}%</text>`;
   });
-  const stepH = S.range === 1 ? 6 : S.range === 3 ? 12 : 24;
+  const stepH = S.range === 1 ? (W > 600 ? 3 : 6) : S.range === 3 ? (W > 600 ? 6 : 12) : 24;
   const first = new Date(start); first.setMinutes(0, 0, 0);
   for (let d = new Date(first.getTime() + 3600000); d <= end; d = new Date(d.getTime() + 3600000)) {
     const hm = romeMinutes(d); if (hm % (stepH * 60) !== 0) continue;
@@ -721,7 +915,7 @@ function attachHover(container, frame, W, pick, prefix) {
     if (dot) { dot.setAttribute("cx", p.x); dot.setAttribute("cy", p.y); dot.setAttribute("visibility", "visible"); }
     const sc = rect.width / W, fr = frame.getBoundingClientRect();
     tip.innerHTML = p.html; tip.hidden = false;
-    tip.style.left = Math.max(80, Math.min(fr.width - 80, rect.left - fr.left + p.x * sc)) + "px";
+    tip.style.left = Math.max(90, Math.min(fr.width - 90, rect.left - fr.left + p.x * sc)) + "px";
     tip.style.top = (rect.top - fr.top + p.y * sc - 10) + "px";
   };
   const leave = () => { tip.hidden = true; cross && cross.setAttribute("visibility", "hidden"); dot && dot.setAttribute("visibility", "hidden"); };
@@ -729,58 +923,293 @@ function attachHover(container, frame, W, pick, prefix) {
 }
 
 /* ================= render: consumi ================= */
-function renderCons() {
-  const price = Number($("price").value) || 0;
-  const last = ((S.consumi && S.consumi.giornalieri) || []).slice(-30);
-  const key = S.cons;
-  const full = last.slice(0, -1);                 // l'ultimo giorno è in corso
-  const vals = full.map((d) => d[key]).filter((v) => v != null);
-  const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-  if (key === "kwh") {
-    $("kpis").innerHTML = `
-      <div class="card kpi"><span class="k">Al giorno</span><span class="v">${fmtN(avg, 1)} kWh</span></div>
-      <div class="card kpi"><span class="k">Al mese</span><span class="v">${avg == null ? "–" : fmtN(avg * 30, 0) + " kWh"}</span></div>
-      <div class="card kpi"><span class="k">Costo al mese</span><span class="v">${avg == null ? "–" : "≈ " + fmtN(avg * 30 * price, 0) + " €"}</span></div>`;
-  } else {
-    $("kpis").innerHTML = `
-      <div class="card kpi"><span class="k">Al giorno</span><span class="v">${fmtN(avg, 0)} L</span></div>
-      <div class="card kpi"><span class="k">Docce al giorno</span><span class="v">${avg == null ? "–" : "≈ " + fmtN(avg / SHOWER_L, 0)}</span></div>
-      <div class="card kpi"><span class="k">A persona</span><span class="v">${avg == null ? "–" : fmtN(avg / 5, 0) + " L"}</span></div>`;
-  }
-  const box = $("csChart");
-  if (!last.length) { box.innerHTML = '<div class="empty">Ancora nessun dato di consumo.</div>'; return; }
-  const W = Math.max(300, Math.round(box.clientWidth || 340)), H = 180, L = 34, R = 18, T = 10, B = 26;
-  const nice = niceMax(Math.max(...last.map((d) => d[key] || 0)) || 1);
-  const bw = (W - L - R) / last.length;
-  const Y = (v) => T + (1 - v / nice) * (H - T - B);
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
+function barChart(box, items, color, tipFn, highlightLast) {
+  if (!items.length || !items.some((d) => d.v)) { box.innerHTML = '<div class="empty">Ancora nessun dato.</div>'; return; }
+  const W = Math.max(300, Math.round(box.clientWidth || 340)), H = W > 600 ? 220 : 180, L = 40, R = 18, T = 10, B = 26;
+  const nice = niceMax(Math.max(...items.map((d) => d.v || 0)) || 1);
+  const bw = (W - L - R) / items.length; const Y = (v) => T + (1 - v / nice) * (H - T - B);
   let g = "";
-  [0, nice].forEach((v) => {
+  [0, nice / 2, nice].forEach((v) => {
     g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/>`;
-    g += `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" font-family="var(--mono)" fill="var(--muted)">${fmtN(v)}</text>`;
+    g += `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" font-family="var(--mono)" fill="var(--muted)">${fmtN(v, v < 10 && v % 1 ? 1 : 0)}</text>`;
   });
-  const color = key === "kwh" ? "var(--cold)" : "var(--hot)";
+  const every = Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor((W - L - R) / 34))));
   let bars = "";
-  last.forEach((d, i) => {
-    const v = d[key] || 0; const x = L + i * bw + 1; const w = Math.max(2, bw - 2);
+  items.forEach((d, i) => {
+    const v = d.v || 0; const gap = Math.min(4, bw * 0.25); const x = L + i * bw + gap / 2; const w = Math.max(2, bw - gap);
     const y = Y(v), hgt = Y(0) - y, rr = Math.min(4, w / 2, hgt);
-    if (hgt > 0) bars += `<path d="M${x},${Y(0)} V${y + rr} Q${x},${y} ${x + rr},${y} H${x + w - rr} Q${x + w},${y} ${x + w},${y + rr} V${Y(0)} Z" fill="${color}" ${i === last.length - 1 ? 'fill-opacity=".4"' : ""}/>`;
-    if (i % 7 === (last.length - 1) % 7) g += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle" font-size="11" font-family="var(--mono)" fill="var(--muted)">${fmtDayMonth(new Date(d.data + "T00:00:00Z"))}</text>`;
+    if (hgt > 0) bars += `<path d="M${x},${Y(0)} V${y + rr} Q${x},${y} ${x + rr},${y} H${x + w - rr} Q${x + w},${y} ${x + w},${y + rr} V${Y(0)} Z" fill="${color}" ${highlightLast && i === items.length - 1 ? 'fill-opacity=".4"' : ""}/>`;
+    if ((items.length - 1 - i) % every === 0) g += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle" font-size="11" font-family="var(--mono)" fill="var(--muted)">${d.label}</text>`;
   });
-  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Consumo al giorno">${g}${bars}
-    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Consumi">${g}${bars}<rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
   attachHover(box, box.parentElement, W, (xv) => {
-    const i = Math.max(0, Math.min(last.length - 1, Math.floor((xv - L) / bw)));
-    const d = last[i], v = d[key];
-    const extra = key === "kwh" && v != null ? ` · ≈ ${fmtN(v * price, 2)} €` : v != null ? ` · ≈ ${docce(Math.round(v / SHOWER_L))}` : "";
-    return { x: L + i * bw + bw / 2, y: Y(v || 0), html: `${fmtDayMonth(new Date(d.data + "T00:00:00Z"))}${i === last.length - 1 ? " (oggi, in corso)" : ""}<br><b>${key === "kwh" ? fmtN(v, 1) + " kWh" : fmtN(v, 0) + " L"}</b>${extra}` };
+    const i = Math.max(0, Math.min(items.length - 1, Math.floor((xv - L) / bw)));
+    return { x: L + i * bw + bw / 2, y: Y(items[i].v || 0), html: tipFn(items[i]) };
   }, "cs");
 }
-function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
+function renderCons() {
+  const price = Number($("price").value) || 0;
+  const key = S.cons; const isL = key === "litri";
+  const all = (S.consumi && S.consumi.giornalieri) || [];
+  const todayYmd = romeParts(new Date()).ymd;
+  const full = all.filter((d) => d.data < todayYmd);
+  const last30 = full.slice(-30);
+  const avg = (arr) => { const v = arr.map((d) => d[key]).filter((x) => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const a30 = avg(last30);
+  const persone = (S.stato && S.stato.persone) || 5;
+  const months = (S.consumi && S.consumi.mensili) || [];
+  const thisMonth = months.find((m) => m.data.slice(0, 7) === todayYmd.slice(0, 7));
+  if (isL) {
+    $("kpis").innerHTML = `
+      <div class="card kpi"><span class="k">Al giorno</span><span class="v">${fmtN(a30, 0)} L</span></div>
+      <div class="card kpi"><span class="k">A persona</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + " L"}</span></div>
+      <div class="card kpi"><span class="k">Questo mese</span><span class="v">${thisMonth && thisMonth.litri != null ? fmtN(thisMonth.litri, 0) + " L" : "–"}</span></div>`;
+    $("consNote").textContent = `Litri di acqua calda (a 40 °C) usati in casa: docce, rubinetti, lavandini ed eventuali elettrodomestici collegati all'acqua calda. Media degli ultimi 30 giorni, ${persone} persone.`;
+  } else {
+    const both = last30.filter((d) => d.kwh != null && d.litri);
+    const per100 = both.length ? both.reduce((a, d) => a + d.kwh, 0) / both.reduce((a, d) => a + d.litri, 0) * 100 : null;
+    $("kpis").innerHTML = `
+      <div class="card kpi"><span class="k">Al giorno</span><span class="v">${fmtN(a30, 1)} kWh</span></div>
+      <div class="card kpi"><span class="k">Costo al mese</span><span class="v">${a30 == null ? "–" : "≈ " + fmtN(a30 * 30 * price, 0) + " €"}</span></div>
+      <div class="card kpi"><span class="k">Ogni 100 L</span><span class="v">${fmtN(per100, 1)} kWh</span></div>`;
+    $("consNote").textContent = "Corrente usata dallo scaldabagno. «Ogni 100 L» dice quanta corrente serve per scaldare l'acqua: in estate la pompa di calore rende di più e il numero scende.";
+  }
+  const color = isL ? "var(--hot)" : "var(--cold)";
+  const unit = (v) => v == null ? "–" : isL ? fmtN(v, 0) + " L" : fmtN(v, 1) + " kWh";
+  const cost = (v) => !isL && v != null ? ` · ≈ ${fmtN(v * price, v * price < 10 ? 2 : 0)} €` : "";
+  const box = $("csChart");
+  if (S.view === "giorni") {
+    const items = all.slice(-30).map((d) => ({ v: d[key], label: fmtDayMonth(new Date(d.data + "T00:00:00Z")), d }));
+    $("csCaption").textContent = isL ? "Litri al giorno" : "kWh al giorno";
+    barChart(box, items, color, (it) => `${fmtDayMonth(new Date(it.d.data + "T00:00:00Z"))}${it.d.data >= todayYmd ? " (oggi, in corso)" : ""}<br><b>${unit(it.v)}</b>${cost(it.v)}`, all.length && all[all.length - 1].data >= todayYmd);
+  } else if (S.view === "settimana") {
+    const recent = full.slice(-84); const sums = Array(7).fill(0), counts = Array(7).fill(0);
+    recent.forEach((d) => { if (d[key] == null) return; const wd = (new Date(d.data + "T12:00:00Z").getUTCDay() + 6) % 7; sums[wd] += d[key]; counts[wd]++; });
+    const items = WEEK.map((w, i) => ({ v: counts[i] ? sums[i] / counts[i] : null, label: w, n: counts[i], i }));
+    const vals = items.filter((x) => x.v != null);
+    const top = vals.length ? vals.reduce((a, b) => (b.v > a.v ? b : a)) : null;
+    const low = vals.length ? vals.reduce((a, b) => (b.v < a.v ? b : a)) : null;
+    $("csCaption").textContent = top ? `Media per giorno della settimana (ultime ${Math.min(12, Math.max(1, Math.round(recent.length / 7)))} settimane). Consumate di più il ${WEEK_L[top.i]}, di meno il ${WEEK_L[low.i]}.` : "";
+    barChart(box, items, color, (it) => `${WEEK_L[it.i]} · media su ${it.n} giorni<br><b>${unit(it.v)}</b>${cost(it.v)}`, false);
+  } else {
+    const items = months.slice(-12).map((m) => { const [y, mo] = m.data.split("-").map(Number); return { v: m[key], label: MONTHS_S[mo - 1], m, y, mo }; });
+    $("csCaption").textContent = isL ? "Litri al mese" : "kWh al mese";
+    barChart(box, items, color, (it) => {
+      const eff = it.m.kwh != null && it.m.litri ? `<br>${fmtN(it.m.kwh / it.m.litri * 100, 1)} kWh ogni 100 L` : "";
+      const curM = it.m.data.slice(0, 7) === todayYmd.slice(0, 7) ? " (in corso)" : "";
+      return `${MONTHS[it.mo - 1]} ${it.y}${curM}<br><b>${unit(it.v)}</b>${cost(it.v)}${eff}`;
+    }, months.length && months[months.length - 1].data.slice(0, 7) === todayYmd.slice(0, 7));
+  }
+}
 
-/* ================= render: dettagli ================= */
+/* ================= consigli ================= */
+function analyzeUsage() {
+  const rows = S.storico; if (rows.length < 10) return { days: 0 };
+  const byDay = {}; rows.forEach((r) => { const k = romeParts(r.t).ymd; byDay[k] = (byDay[k] || 0) + 1; });
+  const fullDays = Object.values(byDay).filter((n) => n >= 36).length;
+  const hourly = Array(24).fill(0); const rates = [];
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1], b = rows[i]; const dtH = (b.t - a.t) / 3600000;
+    if (dtH <= 0 || dtH > 0.8) continue;
+    const d = b.pct - a.pct;
+    if (d < 0) hourly[romeParts(a.t).h] += -d;
+    else if (d > 0 && (a.boost || (a.power || 0) > 50)) rates.push(d / dtH);
+  }
+  const H = hourly.map((v) => v / Math.max(1, fullDays));
+  rates.sort((x, y) => x - y);
+  const rate = rates.length >= 4 ? rates[Math.floor(rates.length / 2)] : 15;
+  return { days: fullDays, H, rate };
+}
+function buildSuggestion(a) {
+  const H = a.H; const sumR = (h1, h2) => { let s = 0; for (let h = h1; h <= h2; h++) s += H[h]; return s; };
+  const firstUse = (h1, h2) => { for (let h = h1; h <= h2; h++) if (H[h] >= 3) return h; return null; };
+  const lastUse = (h1, h2) => { for (let h = h2; h >= h1; h--) if (H[h] >= 3) return h; return null; };
+  const r5 = (v) => Math.round(v / 5) * 5; const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const ms = firstUse(4, 11) ?? 6, me = lastUse(4, 11) ?? 9, mu = sumR(4, 11);
+  const es0 = firstUse(15, 23) ?? 18, ee = lastUse(15, 23) ?? 21, eu = sumR(15, 23);
+  const prepTarget = clamp(r5(mu + 25), 60, 95);
+  const prep = clamp(ms - clamp(Math.ceil((prepTarget - 40) / Math.max(5, a.rate)), 1, 4), 2, Math.max(2, ms - 1));
+  const recharge = Math.max(me + 1, 9);
+  const es = Math.max(es0, recharge + 2);
+  const night = Math.min(ee + 1, 23);
+  const slots = [
+    { da: "01:00", soglia: null, nota: "Notte: non tocca nulla" },
+    { da: hhmm(prep * 60), soglia: prepTarget, nota: `Pieno per le ${hhmm(ms * 60)}` },
+    { da: hhmm(ms * 60), soglia: clamp(r5(mu / 2 + 15), 30, 70), nota: "Docce del mattino" },
+    { da: hhmm(recharge * 60), soglia: clamp(r5(eu + 25), 60, 90), nota: "Ricarica per la sera", sole: true },
+    { da: hhmm(es * 60), soglia: clamp(r5(eu / 2 + 15), 30, 70), nota: "Docce della sera" },
+    { da: hhmm(night * 60), soglia: 25, nota: "Scorta per la notte" },
+  ];
+  const seen = new Set();
+  const out = sortedSlots(slots).filter((s) => { if (seen.has(s.da)) return false; seen.add(s.da); return true; });
+  return { slots: out, facts: [
+    `Al mattino usate in media circa ${ilPct(r5(mu))} del serbatoio, soprattutto tra le ${hhmm(ms * 60)} e le ${hhmm((me + 1) * 60)}.`,
+    `La sera ne usate circa ${ilPct(r5(eu))}, tra le ${hhmm(es0 * 60)} e le ${hhmm((ee + 1) * 60)}.`,
+    `Quando scalda, lo scaldabagno recupera circa il ${fmtN(Math.round(a.rate))}% all'ora: per essere pieno alle ${hhmm(ms * 60)} deve partire verso le ${hhmm(prep * 60)}.`,
+  ] };
+}
+function renderAdvice() {
+  const box = $("advice"); const a = analyzeUsage(); const need = 7;
+  if (a.days < need) {
+    box.innerHTML = `<p><b>Sto imparando le vostre abitudini.</b></p>
+      <p class="muted small">Dopo ${need} giorni di dati ti propongo un programma su misura: quando partire la mattina, quanto tenere per le docce e quando ricaricare. Giorni raccolti: ${a.days} di ${need}.</p>
+      <div class="progress"><div style="width:${Math.round(a.days / need * 100)}%"></div></div>`;
+    return;
+  }
+  const sug = buildSuggestion(a);
+  const maxH = Math.max(...a.H, 1);
+  const bars = a.H.map((v, h) => `<div title="${hhmm(h * 60)}: ${fmtN(v, 0)}%" style="flex:1;height:${Math.max(2, v / maxH * 44)}px;background:var(--hot);opacity:${v >= 3 ? 1 : .35};border-radius:2px 2px 0 0"></div>`).join("");
+  const target = S.season === "estate" ? "estivo" : "invernale";
+  box.innerHTML = `<div><p class="eyebrow">Quando usate l'acqua calda</p>
+      <div style="display:flex;align-items:flex-end;gap:2px;height:48px;margin-top:8px">${bars}</div>
+      <div class="dayscale"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div></div>
+    <ul class="facts">${sug.facts.map((f) => `<li>${f}</li>`).join("")}</ul>
+    <div><p class="eyebrow" style="margin-bottom:8px">Programma consigliato</p>
+      <div class="proposal">${withEnds(sug.slots).map((f) => `<div><span class="mono">${f.da} → ${f.a}</span><span>${esc(f.nota)} · ${f.soglia == null ? "non fa niente" : "almeno " + fmtN(f.soglia) + "%"}</span></div>`).join("")}</div></div>
+    <div class="row"><span class="muted small">Lo carico nel programma ${target}: lo controlli e decidi tu se salvarlo.</span>
+      <button class="btn sm primary" type="button" id="btnUseSug">Prova questo programma</button></div>`;
+  $("btnUseSug").onclick = () => {
+    ensureDraft().programmi[S.season] = sug.slots.map((f) => ({ ...f, sole: !!f.sole, _id: ++uid }));
+    S.openId = null; renderProgram(); $("secProgram").scrollIntoView({ behavior: "smooth", block: "start" });
+    setStatus("progStatus", "Programma consigliato caricato: tocca «Salva» per usarlo.", "ok");
+  };
+}
+
+/* ================= impostazioni ================= */
+function renderTemp() {
+  const s = S.stato || {}; const lo = s.temperatura_min || 50, hi = s.temperatura_max || 55;
+  if (S.tTarget == null) S.tTarget = s.temperatura_impostata ?? null;
+  $("tVal").textContent = S.tTarget == null ? "– °C" : `${fmtN(S.tTarget)} °C`;
+  $("tMinus").disabled = S.tTarget == null || S.tTarget <= lo;
+  $("tPlus").disabled = S.tTarget == null || S.tTarget >= hi;
+  $("tApply").hidden = S.tTarget == null || S.tTarget === s.temperatura_impostata;
+}
+$("tMinus").addEventListener("click", () => { S.tTarget -= 1; renderTemp(); });
+$("tPlus").addEventListener("click", () => { S.tTarget += 1; renderTemp(); });
+$("tApply").addEventListener("click", async () => {
+  const btn = $("tApply"); btn.disabled = true;
+  try {
+    const run = await dispatch("temperatura", { valore: String(S.tTarget) }, "tStatus");
+    await loadAll(); S.tTarget = null; renderAll();
+    if (run.conclusion === "success") setStatus("tStatus", `Fatto: temperatura impostata a ${fmtN(S.stato.temperatura_impostata)} °C.`, "ok");
+    else setStatus("tStatus", "Lo scaldabagno non ha accettato la modifica. Riprova più tardi.", "err");
+  } catch (e) { setStatus("tStatus", e.message, "err"); }
+  finally { btn.disabled = false; }
+});
+
+function renderVac() {
+  const v = activeVacation(); const body = $("vacBody");
+  if (v) {
+    const started = localToDate(v.dal) <= new Date();
+    body.innerHTML = `<p><b>${started ? "In corso" : "Programmata"}</b> ${vacWhen(v)}.</p>
+      <div class="row"><span></span><button class="btn sm danger" type="button" id="vacCancel">${started ? "Termina la vacanza adesso" : "Annulla la vacanza"}</button></div>`;
+    $("vacCancel").onclick = () => saveVacation(null);
+    return;
+  }
+  const now = new Date(); const tomorrow = new Date(now.getTime() + 86400000); const week = new Date(now.getTime() + 7 * 86400000);
+  const hours = (id, sel) => `<select id="${id}" aria-label="Ora">${Array.from({ length: 24 }, (_, i) => `<option value="${i}" ${i === sel ? "selected" : ""}>${String(i).padStart(2, "0")}:00</option>`).join("")}</select>`;
+  body.innerHTML = `<div class="q"><span class="ql">Partenza</span><div class="daterow"><input type="date" id="vacFrom" value="${romeParts(tomorrow).ymd}">${hours("vacFromH", 8)}</div></div>
+    <div class="q"><span class="ql">Rientro</span><div class="daterow"><input type="date" id="vacTo" value="${romeParts(week).ymd}">${hours("vacToH", 14)}</div></div>
+    <div class="row"><span></span><button class="btn sm primary" type="button" id="vacSet">Imposta la vacanza</button></div>`;
+  $("vacSet").onclick = () => {
+    if (!$("vacFrom").value || !$("vacTo").value) return setStatus("vacStatus", "Scegli le date di partenza e di rientro.", "err");
+    const dal = `${$("vacFrom").value}T${String($("vacFromH").value).padStart(2, "0")}:00`;
+    const al = `${$("vacTo").value}T${String($("vacToH").value).padStart(2, "0")}:00`;
+    if (localToDate(al) <= localToDate(dal)) return setStatus("vacStatus", "Il rientro deve essere dopo la partenza.", "err");
+    if (localToDate(al) <= new Date()) return setStatus("vacStatus", "Il rientro è già passato.", "err");
+    saveVacation({ dal, al });
+  };
+}
+async function saveVacation(v) {
+  setStatus("vacStatus", "Salvo…");
+  try {
+    await saveConfig((c) => { c.vacanza = v; return c; }, v ? "Vacanza impostata dalla dashboard" : "Vacanza annullata dalla dashboard");
+    renderVac(); renderHero(); renderPlanNow();
+    setStatus("vacStatus", "Salvato. Lo comunico allo scaldabagno…");
+    const run = await dispatch("stato", {}, "vacStatus");
+    await loadAll(); renderAll();
+    if (run.conclusion === "success") setStatus("vacStatus", v ? "Fatto: lo scaldabagno andrà in assenza nelle date scelte." : "Fatto: vacanza tolta.", "ok");
+    else setStatus("vacStatus", "Salvato, ma lo scaldabagno non ha confermato. Riprovo al prossimo controllo.", "err");
+  } catch (e) { setStatus("vacStatus", e.message, "err"); }
+}
+
+function randomTopic() { const a = new Uint8Array(10); crypto.getRandomValues(a); return "scaldabagno-" + Array.from(a, (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 16); }
+function renderNotif() {
+  const n = S.config.notifiche; $("nOn").checked = !!n.attive; const body = $("nBody");
+  if (!n.attive || !n.topic) { body.innerHTML = '<p class="muted small">Ti avvisa quando l\'acqua calda sta finendo, quando lo script accende il Boost o se lo scaldabagno non risponde.</p>'; return; }
+  body.innerHTML = `<ol class="steps">
+      <li>Installa l'app <b>ntfy</b> (gratis, App Store o Play Store).</li>
+      <li>Tocca <b>+</b>, iscriviti a questo argomento e consenti le notifiche:
+        <div class="copyline" style="margin-top:6px"><code id="nTopic">${esc(n.topic)}</code><button class="btn sm" type="button" id="nCopy">Copia</button></div></li>
+      <li>Tocca <b>Invia prova</b> qui sotto per controllare che arrivi.</li>
+    </ol>
+    <label class="check"><input type="checkbox" id="nLow" ${n.sotto ? "checked" : ""}><span>Quando l'acqua calda scende sotto il <input type="number" class="inline-num" id="nLowV" min="5" max="80" step="5" value="${n.sotto || 20}" inputmode="numeric" aria-label="Percentuale"> %</span></label>
+    <label class="check"><input type="checkbox" id="nBoost" ${n.boost ? "checked" : ""}><span>Quando lo script accende il Boost da solo</span></label>
+    <label class="check"><input type="checkbox" id="nOff" ${n.offline ? "checked" : ""}><span>Se lo scaldabagno non risponde o lo script ha un problema</span></label>
+    <div class="row"><button class="btn sm" type="button" id="nTest">Invia prova</button><button class="btn sm primary" type="button" id="nSave">Salva</button></div>
+    <p class="muted small">Chi conosce il nome dell'argomento può leggere le notifiche: tienilo per te.</p>`;
+  $("nCopy").onclick = async () => { try { await navigator.clipboard.writeText(n.topic); setStatus("nStatus", "Copiato.", "ok"); } catch { const r = document.createRange(); r.selectNodeContents($("nTopic")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); setStatus("nStatus", "Selezionato: copialo a mano."); } };
+  $("nTest").onclick = async () => {
+    try {
+      const r = await fetch("https://ntfy.sh/", { method: "POST", body: JSON.stringify({ topic: n.topic, title: "Prova dallo scaldabagno", message: "Le notifiche funzionano.", tags: ["white_check_mark"] }) });
+      setStatus("nStatus", r.ok ? "Inviata: dovrebbe arrivarti tra qualche secondo." : "ntfy non ha accettato la prova. Riprova più tardi.", r.ok ? "ok" : "err");
+    } catch { setStatus("nStatus", "Non riesco a raggiungere ntfy da qui. Controlla la connessione.", "err"); }
+  };
+  $("nSave").onclick = async () => {
+    const sotto = $("nLow").checked ? Math.max(5, Math.min(80, Number($("nLowV").value) || 20)) : 0;
+    setStatus("nStatus", "Salvo…");
+    try { await saveConfig((c) => { c.notifiche = { ...c.notifiche, attive: true, topic: n.topic, sotto, boost: $("nBoost").checked, offline: $("nOff").checked }; return c; }, "Notifiche modificate dalla dashboard"); renderNotif(); setStatus("nStatus", "Salvato.", "ok"); }
+    catch (e) { setStatus("nStatus", e.message, "err"); }
+  };
+}
+$("nOn").addEventListener("change", async (e) => {
+  const on = e.target.checked; e.target.disabled = true; setStatus("nStatus", "Salvo…");
+  try {
+    await saveConfig((c) => { c.notifiche = { ...c.notifiche, attive: on, topic: c.notifiche.topic || randomTopic() }; return c; }, on ? "Notifiche attivate dalla dashboard" : "Notifiche disattivate dalla dashboard");
+    renderNotif(); setStatus("nStatus", on ? "Notifiche attive: segui i passi qui sopra." : "Notifiche disattivate.", "ok");
+  } catch (err) { e.target.checked = !on; setStatus("nStatus", err.message, "err"); }
+  finally { e.target.disabled = false; }
+});
+
+function renderSun() {
+  const c = S.config.sole; $("sOn").checked = !!c.attivo; const body = $("sBody");
+  const sole = S.stato && S.stato.sole; const connected = sole && !sole.errore;
+  const howto = `<details><summary class="small" style="cursor:pointer;color:var(--cold)">Come collegare SolarEdge</summary>
+      <ol class="steps" style="margin-top:8px">
+        <li>Da computer apri <a href="https://monitoring.solaredge.com/" target="_blank" rel="noopener">monitoring.solaredge.com</a> ed entra con l'account di MySolarEdge.</li>
+        <li>Vai in <b>Admin → Accesso al sito → Accesso API</b>, accetta le condizioni, tocca <b>Genera chiave</b> e poi <b>Salva</b>. Se il menu Admin non c'è, chiedi la chiave al tuo installatore.</li>
+        <li>Il numero dell'impianto (site ID) è nell'indirizzo della pagina, dopo <span class="mono">/site/</span>.</li>
+        <li>Su GitHub, nel repository AutoCozyTouch: <b>Settings → Secrets and variables → Actions</b>, aggiungi <span class="mono">SOLAREDGE_API_KEY</span> e <span class="mono">SOLAREDGE_SITE_ID</span>.</li>
+      </ol></details>`;
+  const statusLine = connected ? `<p class="small">☀ Collegato. All'ultimo controllo: pannelli <b>${fmtN(sole.pv_kw, 1)} kW</b>, casa <b>${fmtN(sole.casa_kw, 1)} kW</b>.</p>`
+    : sole && sole.errore ? `<p class="small" style="color:var(--warn)">${esc(sole.errore)}. Controlla la chiave e il site ID.</p>`
+    : `<p class="small muted">Non collegato. Senza SolarEdge lo script funziona come sempre e ignora il sole.</p>`;
+  if (!c.attivo) { body.innerHTML = statusLine + howto; return; }
+  body.innerHTML = statusLine + `
+    <p class="small">Nelle fasce «☀ col sole», accendi il Boost solo se i pannelli producono almeno
+      <input type="number" class="inline-num" id="sKw" min="0.5" max="8" step="0.5" value="${c.surplus_kw}" inputmode="decimal" aria-label="kW in avanzo"> kW più di quanti ne usa la casa.</p>
+    <p class="small">Ma se l'acqua calda scende sotto il <input type="number" class="inline-num" id="sMin" min="0" max="80" step="5" value="${c.minimo_sempre}" inputmode="numeric" aria-label="Percentuale minima"> %, accendilo comunque.</p>
+    <p class="muted small">Per segnare una fascia «col sole», aprila nel programma.</p>
+    <div class="row"><span></span><button class="btn sm primary" type="button" id="sSave">Salva</button></div>` + howto;
+  $("sSave").onclick = async () => {
+    setStatus("sStatus", "Salvo…");
+    try { await saveConfig((x) => { x.sole = { attivo: true, surplus_kw: Math.max(0, Number($("sKw").value) || 2), minimo_sempre: Math.max(0, Math.min(80, Number($("sMin").value) || 0)) }; return x; }, "Pannelli solari modificati dalla dashboard"); renderSun(); setStatus("sStatus", "Salvato.", "ok"); }
+    catch (e) { setStatus("sStatus", e.message, "err"); }
+  };
+}
+$("sOn").addEventListener("change", async (e) => {
+  const on = e.target.checked; e.target.disabled = true; setStatus("sStatus", "Salvo…");
+  try {
+    await saveConfig((c) => { c.sole = { ...c.sole, attivo: on }; return c; }, on ? "Pannelli solari attivati dalla dashboard" : "Pannelli solari disattivati dalla dashboard");
+    renderSun(); renderProgram(); renderPlanNow(); setStatus("sStatus", on ? "Attivato." : "Disattivato: lo script ignora il sole.", "ok");
+  } catch (err) { e.target.checked = !on; setStatus("sStatus", err.message, "err"); }
+  finally { e.target.disabled = false; }
+});
+
+/* ================= dettagli ================= */
 function renderDetails() {
-  const s = S.stato || {}; const T = s.temperature || {};
-  const t = s.ora ? new Date(s.ora) : null;
+  const s = S.stato || {}; const T = s.temperature || {}; const t = s.ora ? new Date(s.ora) : null;
   const rows = [
     ["Acqua calda disponibile", s.percentuale != null ? `${fmtN(s.percentuale)}%` : "–"],
     ["Litri a 40 °C", s.litri_v40 != null ? `${fmtN(s.litri_v40)} L${s.litri_v40_max ? " su " + fmtN(s.litri_v40_max) : ""}` : "–"],
@@ -799,33 +1228,32 @@ function renderDetails() {
     : '<p class="empty">Ancora nessun Boost acceso dallo script.</p>';
 }
 
-function renderAll() { renderHero(); renderPlanNow(); renderProgram(); renderLevel(); renderCons(); renderDetails(); }
+function renderAll() { renderHero(); renderPlanNow(); renderProgram(); renderLevel(); renderCons(); renderAdvice(); renderTemp(); renderVac(); renderNotif(); renderSun(); renderDetails(); }
 
 /* ================= azioni ================= */
 async function runCommand(modalita, btn, label) {
   if (S.busy) return; S.busy = true;
   const b1 = $("btnBoost"), b2 = $("btnRefresh"); b1.disabled = b2.disabled = true;
-  const old = btn.textContent; btn.textContent = label;
-  setStatus("actStatus", "Invio la richiesta…");
+  const old = btn.textContent; btn.textContent = label; setStatus("actStatus", "Invio la richiesta…");
   try {
     const run = await dispatch(modalita);
-    await loadAll(); S.busy = false; btn.textContent = old; renderAll();
+    await loadAll(); S.busy = false; btn.textContent = old; S.tTarget = null; renderAll();
     if (run.conclusion !== "success") setStatus("actStatus", "Qualcosa non ha funzionato. Apri «Esecuzioni su GitHub» in fondo alla pagina per i dettagli.", "err");
     else if (modalita === "boost") setStatus("actStatus", S.stato && S.stato.boost ? "Boost acceso: lo scaldabagno sta scaldando al massimo." : (S.stato && S.stato.azione) || "Fatto.", "ok");
     else setStatus("actStatus", "Dati aggiornati.", "ok");
-  } catch (e) { setStatus("actStatus", e.message, "err"); }
-  finally { S.busy = false; btn.textContent = btn.textContent === label ? old : btn.textContent; b2.disabled = false; b1.disabled = !!(S.stato && S.stato.boost); if (S.stato && S.stato.boost) b1.textContent = "Boost già acceso"; }
+  } catch (e) { setStatus("actStatus", e.message, "err"); btn.textContent = old; }
+  finally { S.busy = false; b2.disabled = false; b1.disabled = !!(S.stato && S.stato.boost); }
 }
 $("btnBoost").addEventListener("click", () => runCommand("boost", $("btnBoost"), "Accendo…"));
 $("btnRefresh").addEventListener("click", () => runCommand("stato", $("btnRefresh"), "Aggiorno…"));
-
 document.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => {
-  S.range = Number(b.dataset.range);
-  document.querySelectorAll("[data-range]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderLevel();
+  S.range = Number(b.dataset.range); document.querySelectorAll("[data-range]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderLevel();
 }));
 document.querySelectorAll("[data-cons]").forEach((b) => b.addEventListener("click", () => {
-  S.cons = b.dataset.cons;
-  document.querySelectorAll("[data-cons]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderCons();
+  S.cons = b.dataset.cons; document.querySelectorAll("[data-cons]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderCons();
+}));
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+  S.view = b.dataset.view; document.querySelectorAll("[data-view]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderCons();
 }));
 $("price").value = store.get("price") || "0.25";
 $("price").addEventListener("input", () => { store.set("price", $("price").value); renderCons(); });
@@ -847,7 +1275,10 @@ $("setupForm").addEventListener("submit", async (e) => {
 });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden || !S.token || S.busy) return;
-  loadAll().then(() => { renderHero(); renderPlanNow(); if (!isDirty() && S.openId == null) { S.draft = null; renderProgram(); } renderLevel(); renderCons(); renderDetails(); }).catch(() => {});
+  loadAll().then(() => {
+    renderHero(); renderPlanNow(); renderLevel(); renderCons(); renderAdvice(); renderDetails();
+    if (!isDirty() && S.openId == null) { S.draft = null; renderProgram(); }
+  }).catch(() => {});
 });
 let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderLevel(); renderCons(); }, 150); });
 setInterval(() => { if (S.stato) $("fresh").textContent = `Aggiornato ${ago(new Date(S.stato.ora))}`; }, 60000);
