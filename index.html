@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f151b" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scaldabagno">
+<meta name="robots" content="noindex">
+<title>Scaldabagno di casa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: una colonna da telefono (max 720px). In alto la risposta ("quante docce"), poi il programma, poi i dati. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --sunk: #e8ecf0;
+  --ink: #16202b;
+  --muted: #5b6876;
+  --line: #dde3ea;
+  --hot: #c4511f;
+  --hot-soft: #f7e0d4;
+  --on-hot: #ffffff;
+  --cold: #3d7fa6;
+  --cold-soft: #d8e7f0;
+  --good: #2f7d4f;
+  --good-soft: #dcefe3;
+  --warn: #a8700c;
+  --warn-soft: #f6ead0;
+  --bad: #b8352f;
+  --bad-soft: #f6dcda;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 16px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f151b; --surface: #172029; --sunk: #111920; --ink: #e8eef3; --muted: #93a1ae; --line: #263340;
+    --hot: #ef7a45; --hot-soft: #3a2219; --on-hot: #1d0f08; --cold: #6aaed6; --cold-soft: #16303f;
+    --good: #5cbf85; --good-soft: #17301f; --warn: #e0a83a; --warn-soft: #33270f; --bad: #ee6a62; --bad-soft: #3a1a18;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.5 var(--body);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.wrap {
+  max-width: 720px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 56px;
+  display: grid; gap: 32px;
+}
+h1, h2, h3 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: 1.15rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.02rem; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 0.88rem; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
+a { color: var(--cold); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+
+header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.fresh { font-size: 0.85rem; color: var(--muted); }
+
+/* ---------- risposta principale ---------- */
+.hero { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
+.tank { width: 96px; height: 168px; }
+.tank svg { width: 100%; height: 100%; display: block; }
+.answer { display: grid; gap: 8px; min-width: 0; }
+.verdict { font-size: 0.95rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+.verdict .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+.verdict.good .dot { background: var(--good); } .verdict.good { color: var(--good); }
+.verdict.warn .dot { background: var(--warn); } .verdict.warn { color: var(--warn); }
+.verdict.bad .dot { background: var(--bad); }  .verdict.bad { color: var(--bad); }
+.showers { font-family: var(--display); font-weight: 700; font-size: 2.6rem; line-height: 1; letter-spacing: -0.03em; }
+.showers .templine { margin-top: 2px; }
+.showers .temp { font-family: var(--body); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.showers span { font-size: 1.15rem; font-weight: 500; letter-spacing: 0; color: var(--muted); display: block; margin-top: 6px; font-family: var(--body); }
+.state { font-size: 0.95rem; }
+.state b { font-weight: 600; }
+
+.actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 16px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; }
+.btn.primary { background: var(--hot); border-color: var(--hot); color: #fff; }
+.btn.quiet { background: transparent; }
+.btn:disabled { opacity: 0.55; cursor: progress; }
+.btn.sm { min-height: 40px; padding: 8px 14px; font-size: 0.92rem; }
+.status { font-size: 0.9rem; min-height: 1.35em; color: var(--muted); }
+.status.err { color: var(--bad); }
+.status.ok { color: var(--good); }
+
+.plan-now { padding: 14px 16px; display: grid; gap: 4px; }
+.plan-now .eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- programma ---------- */
+.sec { display: grid; gap: 14px; }
+.sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dayline { position: relative; height: 40px; display: flex; border-radius: 10px; overflow: hidden; }
+.dayline div { height: 100%; min-width: 0; border-right: 2px solid var(--bg); }
+.dayline div:last-child { border-right: 0; }
+.dayline .now { position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 2px; background: var(--ink); border-right: 0; }
+.dayscale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+.periods { display: grid; }
+.period { display: grid; grid-template-columns: 96px 1fr auto; gap: 12px; align-items: center; padding: 14px 16px; border-top: 1px solid var(--line); width: 100%; text-align: left; background: transparent; border-left: 0; border-right: 0; border-bottom: 0; }
+.period:first-child { border-top: 0; }
+.period .when { font-family: var(--mono); font-size: 0.9rem; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.period .when small { display: block; color: var(--muted); font-size: 0.8rem; }
+.period .what { min-width: 0; display: grid; gap: 2px; }
+.period .what b { font-weight: 600; }
+.period .chev { color: var(--muted); font-size: 1.1rem; }
+.period.current { background: color-mix(in srgb, var(--hot) 8%, var(--surface)); }
+.period.current:first-child { border-radius: var(--r) var(--r) 0 0; }
+.tag { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; background: var(--hot); color: #fff; margin-left: 6px; vertical-align: 1px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: 0; }
+
+.editor { padding: 16px; display: grid; gap: 18px; border-top: 1px solid var(--line); background: var(--sunk); }
+.editor .q { display: grid; gap: 8px; }
+.editor .q > span:first-child { font-weight: 600; }
+.timepick { display: inline-flex; align-items: center; gap: 6px; }
+.timepick select, .editor input[type="text"] { padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.timepick select { font-family: var(--mono); font-size: 1rem; }
+.editor input[type="text"] { width: 100%; }
+.choice { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.choice input { margin-top: 4px; accent-color: var(--hot); }
+.choice > span { display: grid; gap: 6px; min-width: 0; flex: 1; }
+.slider { display: grid; gap: 4px; }
+.slider input { width: 100%; accent-color: var(--hot); }
+.slider .read { display: flex; justify-content: space-between; font-size: 0.9rem; }
+.slider .read b { font-family: var(--mono); font-weight: 500; }
+.editor .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.btn.danger { color: var(--bad); }
+
+.savebar { position: sticky; bottom: max(12px, env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 12px 10px 16px; border-radius: 14px; background: var(--ink); color: var(--bg); box-shadow: 0 6px 24px rgba(0,0,0,.18); z-index: 5; }
+.savebar .btn { min-height: 40px; }
+.savebar .btn.quiet { color: var(--bg); border-color: transparent; }
+
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+.switch { position: relative; width: 52px; height: 32px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background .2s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+.switch input:checked + span { background: var(--good); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 2px solid var(--cold); outline-offset: 2px; }
+
+/* ---------- grafici ---------- */
+.seg { display: inline-flex; background: var(--sunk); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.chartbox { position: relative; padding: 12px 6px 6px; }
+.chartbox svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8rem; color: var(--muted); padding: 4px 8px; }
+.legend i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); padding: 6px 9px; border-radius: 8px; font-size: 0.8rem; line-height: 1.35; white-space: nowrap; transform: translate(-50%, -100%); z-index: 2; }
+.tip b { font-family: var(--mono); font-weight: 500; }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.kpi { padding: 10px 12px; display: grid; gap: 2px; }
+.kpi .k { font-size: 0.78rem; color: var(--muted); }
+.kpi .v { font-family: var(--mono); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.price { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); flex-wrap: wrap; }
+.price input { width: 76px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-family: var(--mono); }
+
+/* ---------- dettagli ---------- */
+details.card > summary { list-style: none; padding: 14px 16px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary::after { content: "›"; color: var(--muted); font-size: 1.2rem; transition: transform .2s; }
+details.card[open] > summary::after { transform: rotate(90deg); }
+.dl { display: grid; grid-template-columns: 1fr auto; padding: 0 16px 8px; }
+.dl > * { padding: 9px 0; border-top: 1px solid var(--line); font-size: 0.92rem; }
+.dl dt { color: var(--muted); }
+.dl dd { margin: 0; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.events { display: grid; padding: 0 16px 10px; }
+.ev { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 0.92rem; }
+.ev .mono { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+
+/* ---------- collegamento ---------- */
+.setup { display: grid; gap: 16px; padding: 18px; }
+.setup ol { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+.field { display: grid; gap: 8px; }
+.field input { padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-family: var(--mono); font-size: 0.9rem; min-width: 0; width: 100%; }
+footer { font-size: 0.85rem; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+footer button { border: 0; background: none; padding: 0; color: var(--cold); text-decoration: underline; }
+
+@media (max-width: 380px) {
+  .tank { width: 80px; height: 140px; }
+  .showers { font-size: 2.2rem; }
+  .period { grid-template-columns: 84px 1fr auto; padding: 12px 14px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>Scaldabagno di casa</h1>
+    <p class="fresh" id="fresh"></p>
+  </header>
+
+  <!-- collegamento iniziale -->
+  <section id="setup" class="card setup" hidden>
+    <h2>Collega la dashboard</h2>
+    <p>La pagina legge e comanda il repository privato <span class="mono">AutoCozyTouch</span> con una chiave GitHub che vale solo per lui. La chiave resta salvata su questo telefono.</p>
+    <ol>
+      <li>Apri <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → nuova chiave (Fine-grained token)</a>.</li>
+      <li>Nome a piacere, scadenza la più lunga che ti offre.</li>
+      <li><b>Repository access</b>: "Only select repositories" → <span class="mono">AutoCozyTouch</span>.</li>
+      <li><b>Permissions → Repository permissions</b>: <i>Actions</i> = Read and write, <i>Contents</i> = Read and write.</li>
+      <li>Genera la chiave, copiala e incollala qui sotto.</li>
+    </ol>
+    <form id="setupForm" class="field">
+      <label for="token" class="small muted">Chiave GitHub</label>
+      <input id="token" type="password" autocomplete="off" placeholder="github_pat_…" required>
+      <button class="btn primary" type="submit">Collega</button>
+      <p class="status" id="setupStatus"></p>
+    </form>
+  </section>
+
+  <div id="main" hidden style="display:grid; gap:32px">
+
+    <!-- 1. la risposta -->
+    <section class="sec" aria-label="Acqua calda adesso">
+      <div class="hero">
+        <div class="tank" id="tank" role="img" aria-label="Serbatoio"></div>
+        <div class="answer">
+          <p class="verdict" id="verdict"><span class="dot"></span><span id="verdictText">–</span></p>
+          <p class="showers" id="showers">–</p>
+          <p class="state" id="state"></p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="btnBoost" type="button">Accendi il Boost</button>
+        <button class="btn" id="btnRefresh" type="button" aria-label="Aggiorna i dati">Aggiorna</button>
+      </div>
+      <p class="status" id="actStatus" role="status" aria-live="polite"></p>
+      <div class="card plan-now" id="planNow"></div>
+    </section>
+
+    <!-- 2. programma -->
+    <section class="sec" aria-labelledby="progTitle">
+      <div class="sechead">
+        <h2 id="progTitle">Programma della giornata</h2>
+      </div>
+      <p class="muted small">In ogni fascia lo script controlla ogni 30 minuti. Se l'acqua calda è sotto il minimo, accende il Boost. Lo scaldabagno lo spegne da solo quando ha finito.</p>
+      <div>
+        <div class="dayline" id="dayline" aria-hidden="true"></div>
+        <div class="dayscale"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+      </div>
+      <div class="card periods" id="periods"></div>
+      <button class="btn sm quiet" type="button" id="btnAdd" style="justify-self:start">+ Aggiungi una fascia</button>
+      <div class="savebar" id="savebar" hidden>
+        <span class="small">Modifiche non salvate</span>
+        <span style="display:flex; gap:6px">
+          <button class="btn sm quiet" type="button" id="btnDiscard">Annulla</button>
+          <button class="btn sm primary" type="button" id="btnSave">Salva</button>
+        </span>
+      </div>
+      <p class="status" id="progStatus" role="status" aria-live="polite"></p>
+      <div class="card toggle">
+        <div>
+          <p style="font-weight:600">Programma attivo</p>
+          <p class="muted small" id="autoText">Se lo spegni, lo script non accende più il Boost da solo.</p>
+        </div>
+        <label class="switch"><input type="checkbox" id="autoSwitch" aria-label="Programma attivo"><span></span></label>
+      </div>
+    </section>
+
+    <!-- 3. andamento -->
+    <section class="sec" aria-labelledby="lvTitle">
+      <div class="sechead">
+        <h2 id="lvTitle">Andamento</h2>
+        <div class="seg" role="group" aria-label="Periodo">
+          <button type="button" data-range="1" aria-pressed="true">24 ore</button>
+          <button type="button" data-range="3" aria-pressed="false">3 giorni</button>
+          <button type="button" data-range="7" aria-pressed="false">7 giorni</button>
+        </div>
+      </div>
+      <div class="card chartbox" id="lvBox">
+        <div id="lvChart"></div>
+        <div class="legend">
+          <span><i style="background:var(--hot)"></i>Acqua calda</span>
+          <span><i style="background:transparent;border-top:2px dashed var(--muted);height:0;border-radius:0"></i>Minimo della fascia</span>
+          <span><i style="background:var(--hot-soft)"></i>Boost acceso</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. consumi -->
+    <section class="sec" aria-labelledby="csTitle">
+      <div class="sechead">
+        <h2 id="csTitle">Consumi</h2>
+        <div class="seg" role="group" aria-label="Misura">
+          <button type="button" data-cons="kwh" aria-pressed="true">Corrente</button>
+          <button type="button" data-cons="litri" aria-pressed="false">Acqua calda</button>
+        </div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="card chartbox"><div id="csChart"></div></div>
+      <div class="price">
+        <label for="price">Prezzo della corrente</label>
+        <input id="price" type="number" step="0.01" min="0" inputmode="decimal" value="0.25">
+        <span>€/kWh (serve solo per stimare il costo)</span>
+      </div>
+    </section>
+
+    <!-- 5. dettagli -->
+    <details class="card" id="details">
+      <summary>Dettagli tecnici</summary>
+      <dl class="dl" id="dl"></dl>
+    </details>
+    <details class="card">
+      <summary>Ultimi Boost accesi</summary>
+      <div class="events" id="events"></div>
+    </details>
+
+    <footer>
+      <a id="lnkActions" href="#" target="_blank" rel="noopener">Esecuzioni su GitHub</a>
+      <button type="button" id="btnLogout">Scollega questo telefono</button>
+    </footer>
+  </div>
+</div>
+
+<script>
+"use strict";
+const OWNER = "21sba", REPO = "AutoCozyTouch", WORKFLOW = "boost.yml";
+const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
+const TZ = "Europe/Rome";
+const SHOWER_L = 45;           // litri a 40 °C per una doccia
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+const S = { token: store.get("gh_token"), stato: null, storico: [], consumi: null, config: null, configSha: null,
+  draft: null, openId: null, range: 1, cons: "kwh", busy: false };
+let uid = 0;
+
+/* ================= GitHub ================= */
+async function gh(path, opts = {}) {
+  const res = await fetch(path.startsWith("http") ? path : API + path, {
+    ...opts, cache: "no-store",
+    headers: { Authorization: `Bearer ${S.token}`, "X-GitHub-Api-Version": "2022-11-28",
+      Accept: opts.raw ? "application/vnd.github.raw+json" : "application/vnd.github+json", ...(opts.headers || {}) },
+  });
+  if (res.status === 401) throw new Error("La chiave GitHub non è valida o è scaduta.");
+  if (res.status === 403) throw new Error("La chiave non ha i permessi giusti (servono Actions e Contents in lettura e scrittura).");
+  if (res.status === 404) { const e = new Error("non trovato"); e.notFound = true; throw e; }
+  if (res.status === 409) throw new Error("Il programma è cambiato nel frattempo: ricarica la pagina e riprova.");
+  if (!res.ok) throw new Error(`GitHub ha risposto con un errore (${res.status}). Riprova tra poco.`);
+  if (res.status === 204) return null;
+  return opts.raw ? res.text() : res.json();
+}
+const rawFile = (path, ref) => gh(`/contents/${path}?ref=${ref}`, { raw: true });
+const b64 = (s) => btoa(unescape(encodeURIComponent(s)));
+const unb64 = (s) => decodeURIComponent(escape(atob(s.replace(/\n/g, ""))));
+
+async function loadAll() {
+  const [stato, storico, consumi, cfg] = await Promise.allSettled([
+    rawFile("stato.json", "dati"), rawFile("storico.csv", "dati"), rawFile("consumi.json", "dati"),
+    gh("/contents/config.json?ref=main"),
+  ]);
+  if (cfg.status === "rejected" && !cfg.reason.notFound) throw cfg.reason;
+  if (stato.status === "fulfilled") S.stato = JSON.parse(stato.value);
+  if (storico.status === "fulfilled") S.storico = parseCsv(storico.value);
+  if (consumi.status === "fulfilled") S.consumi = JSON.parse(consumi.value);
+  if (cfg.status === "fulfilled") { S.config = JSON.parse(unb64(cfg.value.content)); S.configSha = cfg.value.sha; }
+}
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/); const head = lines.shift().split(",");
+  return lines.map((l) => { const c = l.split(","); const o = {}; head.forEach((h, i) => (o[h] = c[i] ?? ""));
+    return { t: new Date(o.ora), pct: num(o.percentuale), boost: o.boost === "1", soglia: num(o.soglia), azione: o.azione }; })
+    .filter((r) => !isNaN(r.t) && r.pct != null).sort((a, b) => a.t - b.t);
+}
+function num(v) { if (v === "" || v == null) return null; const n = Number(v); return isFinite(n) ? n : null; }
+
+async function dispatch(modalita) {
+  const since = Date.now();
+  await gh(`/actions/workflows/${WORKFLOW}/dispatches`, { method: "POST",
+    body: JSON.stringify({ ref: "main", inputs: { modalita } }), headers: { "Content-Type": "application/json" } });
+  const deadline = since + 4 * 60 * 1000; let run = null;
+  while (Date.now() < deadline) {
+    await sleep(run ? 5000 : 3000);
+    const list = await gh(`/actions/workflows/${WORKFLOW}/runs?event=workflow_dispatch&per_page=5`);
+    run = (list.workflow_runs || []).find((r) => new Date(r.created_at).getTime() >= since - 15000) || null;
+    if (run && run.status === "completed") return run;
+    setStatus("actStatus", run ? "Sto parlando con lo scaldabagno… (di solito meno di un minuto)" : "Richiesta inviata…");
+  }
+  throw new Error("Ci sta mettendo più del solito. Tocca «Aggiorna» tra qualche minuto.");
+}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function saveConfig(newCfg, message) {
+  const body = { message, content: b64(JSON.stringify(newCfg, null, 2) + "\n"), branch: "main" };
+  if (S.configSha) body.sha = S.configSha;
+  const res = await gh("/contents/config.json", { method: "PUT", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+  S.config = newCfg; S.configSha = res.content.sha;
+}
+
+/* ================= utilità ================= */
+const fmtTime = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
+const fmtDay = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: TZ, weekday: "short", day: "numeric" }).format(d);
+const fmtDayMonth = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: "UTC", day: "numeric", month: "short" }).format(d);
+const fmtN = (v, d = 0) => v == null ? "–" : v.toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
+function ago(d) {
+  const m = Math.round((Date.now() - d.getTime()) / 60000);
+  if (m < 1) return "adesso"; if (m < 60) return `${m} min fa`;
+  const h = Math.floor(m / 60); if (h < 24) return `${h} h fa`; return `${Math.floor(h / 24)} giorni fa`;
+}
+function romeMinutes(d) {
+  const p = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
+  return Number(p.find((x) => x.type === "hour").value) % 24 * 60 + Number(p.find((x) => x.type === "minute").value);
+}
+const toMin = (s) => { const [h, m] = String(s).split(":").map(Number); return h * 60 + m; };
+const hhmm = (m) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function setStatus(id, text, kind) { const el = $(id); el.textContent = text || ""; el.className = "status" + (kind ? " " + kind : ""); }
+
+// litri a 40 °C per ogni punto percentuale, letto dallo scaldabagno
+function litresPerPct() {
+  const s = S.stato;
+  if (s && s.litri_v40 && s.percentuale) return s.litri_v40 / s.percentuale;
+  if (s && s.litri_v40_max) return s.litri_v40_max / 100;
+  return 5;
+}
+const showersAt = (pct) => Math.floor(pct * litresPerPct() / SHOWER_L);
+// "il 50%", "l'85%", "l'8%", "l'11%"
+function ilPct(v) { const n = Math.round(v); const apos = n === 1 || n === 8 || n === 11 || n === 18 || (n >= 80 && n < 90); return `${apos ? "l'" : "il "}${fmtN(n)}%`; }
+const docce = (n) => n === 1 ? "1 doccia" : `${n} docce`;
+
+/* ================= programma: modello ================= */
+function sortedSlots(list) { return list.slice().sort((a, b) => toMin(a.da) - toMin(b.da)); }
+function workingSlots() {
+  if (!S.draft) S.draft = sortedSlots(((S.config && S.config.fasce) || []).map((f) => ({ ...f, _id: ++uid })));
+  return S.draft;
+}
+function withEnds(list) {
+  const l = sortedSlots(list);
+  return l.map((f, i) => ({ ...f, a: l[(i + 1) % l.length].da }));
+}
+function currentSlot(list, m) {
+  const l = sortedSlots(list); if (!l.length) return null;
+  let cur = l[l.length - 1]; l.forEach((f) => { if (toMin(f.da) <= m) cur = f; }); return cur;
+}
+const isDirty = () => {
+  if (!S.draft) return false;
+  const a = JSON.stringify(sortedSlots(S.draft).map(({ da, soglia, nota }) => ({ da, soglia, nota })));
+  const b = JSON.stringify(sortedSlots((S.config && S.config.fasce) || []).map(({ da, soglia, nota }) => ({ da, soglia: soglia ?? null, nota: nota ?? "" })));
+  return a !== b;
+};
+function slotFill(s) {
+  if (s == null) return "var(--sunk)";
+  return `color-mix(in srgb, var(--hot) ${Math.round(20 + 70 * s / 100)}%, var(--surface))`;
+}
+function goalText(s) {
+  return s == null ? "Non fa niente" : `Tiene almeno ${ilPct(s)}`;
+}
+
+/* ================= render: risposta ================= */
+function renderHero() {
+  const s = S.stato;
+  if (!s) { $("showers").textContent = "–"; $("verdictText").textContent = "Nessun dato ancora"; $("state").textContent = "Tocca «Aggiorna» per leggere lo scaldabagno."; drawTank(null); return; }
+  const t = new Date(s.ora);
+  $("fresh").textContent = `Aggiornato ${ago(t)}`;
+  const n = s.litri_v40 != null ? Math.floor(s.litri_v40 / SHOWER_L) : showersAt(s.percentuale);
+  const v = $("verdict");
+  const [cls, txt] = n >= 6 ? ["good", "Acqua calda in abbondanza"] : n >= 3 ? ["good", "Acqua calda sufficiente"] : n >= 1 ? ["warn", "Acqua calda quasi finita"] : ["bad", "Acqua calda finita"];
+  v.className = "verdict " + cls; $("verdictText").textContent = txt;
+  const T = s.temperature || {};
+  const temp = T.alto ?? T.media ?? T.centro;
+  $("showers").innerHTML = `${n === 1 ? "1 doccia" : n + " docce"}<span>pronte adesso${temp != null ? ` · <b class="temp">${fmtN(temp, 0)}&nbsp;°C</b>` : ""}</span>`;
+  const heating = (s.potenza_w || 0) > 50;
+  $("state").innerHTML = s.disponibile === false ? "<b>Non raggiungibile</b>: lo scaldabagno non risponde al cloud."
+    : s.boost ? "<b>Boost acceso</b>: sta scaldando al massimo."
+    : heating ? "<b>Sta scaldando</b> da solo."
+    : "<b>A riposo</b>.";
+  if (s.assenza) $("state").innerHTML += " Modalità assenza attiva.";
+  drawTank(s.percentuale, heating || s.boost);
+  $("btnBoost").textContent = s.boost ? "Boost già acceso" : "Accendi il Boost";
+  $("btnBoost").disabled = !!s.boost || S.busy;
+}
+function drawTank(pct, warm) {
+  const W = 96, H = 168, x = 8, y = 10, w = 80, h = 152, r = 34;
+  const p = pct == null ? 0 : Math.max(0, Math.min(100, pct));
+  const fillH = h * p / 100;
+  $("tank").setAttribute("aria-label", pct == null ? "Serbatoio, dato non disponibile" : `Serbatoio al ${Math.round(p)}%`);
+  $("tank").innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <defs><clipPath id="tc"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/></clipPath></defs>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="var(--cold-soft)"/>
+    <g clip-path="url(#tc)">
+      <rect x="${x}" y="${y + h - fillH}" width="${w}" height="${fillH}" fill="var(--hot)"/>
+      ${warm ? `<rect x="${x}" y="${y + h - 8}" width="${w}" height="8" fill="#fff" opacity=".35"/>` : ""}
+    </g>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="none" stroke="var(--ink)" stroke-opacity=".15" stroke-width="2"/>
+    <rect x="${x + w / 2 - 11}" y="1" width="22" height="9" rx="3" fill="var(--line)"/>
+    ${pct == null ? "" : `<text x="${x + w / 2}" y="${y + h / 2 + 9}" text-anchor="middle" font-family="var(--display)" font-weight="700" font-size="26" fill="${p >= 55 ? "var(--on-hot)" : "var(--ink)"}" style="letter-spacing:-0.02em">${Math.round(p)}<tspan font-size="15" font-weight="500" dx="1">%</tspan></text>`}
+  </svg>`;
+}
+function renderPlanNow() {
+  const cfg = S.config || {}; const list = (cfg.fasce || []);
+  const box = $("planNow");
+  if (!list.length) { box.innerHTML = '<p class="muted">Nessun programma impostato.</p>'; return; }
+  const m = romeMinutes(new Date());
+  const ends = withEnds(list); const cur = ends.find((f) => f.da === currentSlot(list, m).da);
+  let line;
+  if (cfg.automatico === false) line = "Il programma è in pausa: lo script non accende il Boost da solo.";
+  else if (cur.soglia == null) line = `Fino alle ${cur.a} lo script non tocca nulla e lascia fare allo scaldabagno.`;
+  else {
+    const below = S.stato && S.stato.percentuale < cur.soglia;
+    line = below && !(S.stato && S.stato.boost)
+      ? `L'acqua calda è sotto il minimo di questa fascia (${fmtN(cur.soglia)}%): al prossimo controllo accende il Boost.`
+      : `Fino alle ${cur.a} tiene almeno ${ilPct(cur.soglia)} (≈ ${docce(showersAt(cur.soglia))}). Se scende sotto, accende il Boost.`;
+  }
+  box.innerHTML = `<p class="eyebrow">Adesso · ${esc(cur.nota || "Fascia " + cur.da)}</p><p>${line}</p>`;
+}
+
+/* ================= render: programma ================= */
+function renderProgram() {
+  const list = withEnds(workingSlots());
+  const m = romeMinutes(new Date());
+  const cur = currentSlot(list, m);
+  // striscia 24h
+  let segs = [];
+  if (list.length) {
+    const last = list[list.length - 1];
+    if (toMin(list[0].da) > 0) segs.push({ from: 0, to: toMin(list[0].da), f: last });
+    list.forEach((f, i) => segs.push({ from: toMin(f.da), to: i + 1 < list.length ? toMin(list[i + 1].da) : 1440, f }));
+  }
+  $("dayline").innerHTML = segs.filter((s) => s.to > s.from).map((s) => `<div style="flex:${s.to - s.from};background:${slotFill(s.f.soglia)}"></div>`).join("")
+    + `<span class="now" style="left:calc(${(m / 1440 * 100).toFixed(2)}% - 1px)"></span>`;
+  // righe
+  $("periods").innerHTML = list.map((f) => {
+    const isCur = cur && f._id === cur._id;
+    const open = S.openId === f._id;
+    const goal = f.soglia == null ? "Non fa niente" : `Tiene almeno ${ilPct(f.soglia)} <span class="muted">≈ ${docce(showersAt(f.soglia))}</span>`;
+    const row = `<button type="button" class="period${isCur ? " current" : ""}" data-id="${f._id}" aria-expanded="${open}">
+        <span class="when">${esc(f.da)}<small>→ ${esc(f.a)}</small></span>
+        <span class="what"><b>${esc(f.nota || "Fascia")}${isCur ? '<span class="tag">Adesso</span>' : ""}</b><span class="small"><span class="swatch" style="background:${slotFill(f.soglia)}"></span>${goal}</span></span>
+        <span class="chev" aria-hidden="true">${open ? "▾" : "›"}</span>
+      </button>`;
+    return row + (open ? editorHtml(f, list) : "");
+  }).join("");
+  $("savebar").hidden = !isDirty();
+  $("autoSwitch").checked = (S.config || {}).automatico !== false;
+}
+function timeSelect(id, value) {
+  const [h, mm] = value.split(":").map(Number);
+  const hours = Array.from({ length: 24 }, (_, i) => `<option value="${i}" ${i === h ? "selected" : ""}>${String(i).padStart(2, "0")}</option>`).join("");
+  const mins = [0, 15, 30, 45]; if (!mins.includes(mm)) mins.push(mm); mins.sort((a, b) => a - b);
+  return `<span class="timepick"><select id="${id}H" aria-label="Ora">${hours}</select><b>:</b><select id="${id}M" aria-label="Minuti">${mins.map((x) => `<option value="${x}" ${x === mm ? "selected" : ""}>${String(x).padStart(2, "0")}</option>`).join("")}</select></span>`;
+}
+function editorHtml(f, list) {
+  const idx = list.findIndex((x) => x._id === f._id);
+  const next = list[(idx + 1) % list.length];
+  const s = f.soglia == null ? 50 : f.soglia;
+  return `<div class="editor" data-ed="${f._id}">
+    <label class="q"><span>Nome</span><input type="text" id="edName" value="${esc(f.nota)}" placeholder="Es. Docce del mattino" maxlength="40"></label>
+    <div class="q"><span>Inizia alle</span>${timeSelect("edStart", f.da)}
+      <span class="muted small">Finisce alle ${esc(next.da)}, quando inizia «${esc(next.nota || "la fascia dopo")}».</span></div>
+    <div class="q"><span>Cosa deve fare</span>
+      <label class="choice"><input type="radio" name="edMode" value="keep" ${f.soglia != null ? "checked" : ""}>
+        <span><span>Tenere sempre almeno un minimo di acqua calda</span>
+          <span class="slider" ${f.soglia == null ? "hidden" : ""} id="edSlider">
+            <input type="range" id="edPct" min="10" max="95" step="5" value="${s}" aria-label="Minimo di acqua calda">
+            <span class="read"><span>Minimo: <b id="edPctV">${s}%</b></span><span class="muted" id="edPctD">≈ ${docce(showersAt(s))}</span></span>
+            <span class="muted small">Se scende sotto, accende il Boost.</span>
+          </span></span></label>
+      <label class="choice"><input type="radio" name="edMode" value="none" ${f.soglia == null ? "checked" : ""}>
+        <span><span>Non fare niente</span><span class="muted small">Lascia fare allo scaldabagno, utile di notte.</span></span></label>
+    </div>
+    <div class="row">
+      <button class="btn sm quiet danger" type="button" id="edDelete" ${list.length <= 1 ? "disabled" : ""}>Elimina fascia</button>
+      <button class="btn sm" type="button" id="edDone">Fatto</button>
+    </div>
+  </div>`;
+}
+function editing() { return S.draft && S.draft.find((x) => x._id === S.openId); }
+
+$("periods").addEventListener("click", (e) => {
+  const row = e.target.closest(".period");
+  if (row) { const id = Number(row.dataset.id); S.openId = S.openId === id ? null : id; renderProgram(); return; }
+  if (e.target.id === "edDone") { S.openId = null; renderProgram(); return; }
+  if (e.target.id === "edDelete") { S.draft = S.draft.filter((x) => x._id !== S.openId); S.openId = null; renderProgram(); }
+});
+$("periods").addEventListener("input", (e) => {
+  const f = editing(); if (!f) return;
+  const t = e.target;
+  if (t.id === "edName") { f.nota = t.value; $("savebar").hidden = !isDirty(); return; }
+  if (t.id === "edPct") { f.soglia = Number(t.value); $("edPctV").textContent = t.value + "%"; $("edPctD").textContent = "≈ " + docce(showersAt(f.soglia)); refreshProgramLight(); return; }
+});
+$("periods").addEventListener("change", (e) => {
+  const f = editing(); if (!f) return;
+  const t = e.target;
+  if (t.name === "edMode") { f.soglia = t.value === "none" ? null : Number($("edPct").value); renderProgram(); return; }
+  if (t.id === "edStartH" || t.id === "edStartM") {
+    const nv = hhmm(Number($("edStartH").value) * 60 + Number($("edStartM").value));
+    if (S.draft.some((x) => x._id !== f._id && x.da === nv)) { setStatus("progStatus", `C'è già una fascia che inizia alle ${nv}.`, "err"); renderProgram(); return; }
+    f.da = nv; setStatus("progStatus", ""); renderProgram();
+  }
+});
+function refreshProgramLight() {
+  // aggiorna striscia, etichetta della riga aperta e barra di salvataggio senza ridisegnare l'editor
+  const list = withEnds(S.draft);
+  const f = editing();
+  const row = document.querySelector(`.period[data-id="${S.openId}"] .what .small`);
+  if (row && f) row.innerHTML = `<span class="swatch" style="background:${slotFill(f.soglia)}"></span>Tiene almeno ${ilPct(f.soglia)} <span class="muted">≈ ${docce(showersAt(f.soglia))}</span>`;
+  const m = romeMinutes(new Date()); const segs = [];
+  if (list.length) {
+    if (toMin(list[0].da) > 0) segs.push({ from: 0, to: toMin(list[0].da), f: list[list.length - 1] });
+    list.forEach((x, i) => segs.push({ from: toMin(x.da), to: i + 1 < list.length ? toMin(list[i + 1].da) : 1440, f: x }));
+  }
+  $("dayline").innerHTML = segs.filter((s) => s.to > s.from).map((s) => `<div style="flex:${s.to - s.from};background:${slotFill(s.f.soglia)}"></div>`).join("")
+    + `<span class="now" style="left:calc(${(m / 1440 * 100).toFixed(2)}% - 1px)"></span>`;
+  $("savebar").hidden = !isDirty();
+}
+$("btnAdd").addEventListener("click", () => {
+  const list = workingSlots(); const used = new Set(list.map((x) => x.da));
+  let h = 12; while (used.has(hhmm(h * 60)) && h < 23) h++;
+  const f = { da: hhmm(h * 60), soglia: 50, nota: "Nuova fascia", _id: ++uid };
+  list.push(f); S.openId = f._id; renderProgram();
+  const ed = document.querySelector(".editor"); if (ed) ed.scrollIntoView({ block: "nearest", behavior: "smooth" });
+});
+$("btnDiscard").addEventListener("click", () => { S.draft = null; S.openId = null; setStatus("progStatus", ""); renderProgram(); });
+$("btnSave").addEventListener("click", async () => {
+  const list = sortedSlots(S.draft).map(({ da, soglia, nota }) => ({ da, soglia, nota: (nota || "").trim() }));
+  const btn = $("btnSave"); btn.disabled = true; setStatus("progStatus", "Salvo…");
+  try {
+    await saveConfig({ automatico: (S.config || {}).automatico !== false, fasce: list }, "Programma modificato dalla dashboard");
+    S.draft = null; S.openId = null; renderProgram(); renderPlanNow();
+    setStatus("progStatus", "Salvato. Vale dal prossimo controllo, entro 30 minuti.", "ok");
+  } catch (e) { setStatus("progStatus", e.message, "err"); }
+  finally { btn.disabled = false; }
+});
+$("autoSwitch").addEventListener("change", async (e) => {
+  const on = e.target.checked; e.target.disabled = true;
+  try {
+    await saveConfig({ ...(S.config || {}), automatico: on, fasce: (S.config && S.config.fasce) || [] }, on ? "Programma attivato dalla dashboard" : "Programma in pausa dalla dashboard");
+    setStatus("progStatus", on ? "Programma attivo." : "Programma in pausa: lo script registra i dati ma non accende il Boost.", "ok");
+    renderPlanNow();
+  } catch (err) { e.target.checked = !on; setStatus("progStatus", err.message, "err"); }
+  finally { e.target.disabled = false; }
+});
+
+/* ================= render: andamento ================= */
+function renderLevel() {
+  const box = $("lvChart");
+  const end = new Date(); const start = new Date(end.getTime() - S.range * 86400000);
+  const rows = S.storico.filter((r) => r.t >= start);
+  if (rows.length < 2) { box.innerHTML = '<div class="empty">Il grafico si riempie da solo, con un punto ogni 30 minuti. Torna tra qualche ora.</div>'; return; }
+  const W = Math.max(300, Math.round(box.clientWidth || 340)), H = 220, L = 34, R = 18, T = 10, B = 26;
+  const X = (d) => L + (d - start) / (end - start) * (W - L - R);
+  const Y = (v) => T + (100 - v) / 100 * (H - T - B);
+  let grid = "";
+  [0, 50, 100].forEach((v) => {
+    grid += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/>`;
+    grid += `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" font-family="var(--mono)" fill="var(--muted)">${v}%</text>`;
+  });
+  const stepH = S.range === 1 ? 6 : S.range === 3 ? 12 : 24;
+  const first = new Date(start); first.setMinutes(0, 0, 0);
+  for (let d = new Date(first.getTime() + 3600000); d <= end; d = new Date(d.getTime() + 3600000)) {
+    const hm = romeMinutes(d); if (hm % (stepH * 60) !== 0) continue;
+    const lbl = S.range === 1 ? fmtTime(d) : hm === 0 ? fmtDay(d) : fmtTime(d);
+    grid += `<line x1="${X(d)}" x2="${X(d)}" y1="${T}" y2="${H - B}" stroke="var(--line)" stroke-dasharray="2 4"/>`;
+    grid += `<text x="${X(d)}" y="${H - 8}" text-anchor="middle" font-size="11" font-family="var(--mono)" fill="var(--muted)">${lbl}</text>`;
+  }
+  let bands = "";
+  for (let i = 0; i < rows.length; i++) {
+    if (!rows[i].boost) continue; let j = i; while (j + 1 < rows.length && rows[j + 1].boost) j++;
+    const x1 = X(rows[i].t), x2 = j + 1 < rows.length ? X(rows[j + 1].t) : X(rows[j].t) + 4;
+    bands += `<rect x="${x1}" y="${T}" width="${Math.max(3, x2 - x1)}" height="${H - T - B}" fill="var(--hot-soft)"/>`; i = j;
+  }
+  let thr = "", seg = [];
+  const flush = () => { if (seg.length > 1) thr += `<path d="${seg.join(" ")}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>`; seg = []; };
+  rows.forEach((r, i) => { if (r.soglia == null) { flush(); return; }
+    const nx = i + 1 < rows.length ? X(rows[i + 1].t) : X(r.t);
+    seg.push(`${seg.length ? "L" : "M"}${X(r.t)},${Y(r.soglia)}`); seg.push(`L${nx},${Y(r.soglia)}`); });
+  flush();
+  const pts = rows.map((r) => `${X(r.t).toFixed(1)},${Y(r.pct).toFixed(1)}`);
+  const area = `M${X(rows[0].t)},${Y(0)} L${pts.join(" L")} L${X(rows[rows.length - 1].t)},${Y(0)} Z`;
+  const lastR = rows[rows.length - 1];
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Acqua calda nel tempo">
+    ${bands}${grid}${thr}
+    <path d="${area}" fill="var(--hot)" fill-opacity=".14"/>
+    <polyline points="${pts.join(" ")}" fill="none" stroke="var(--hot)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${X(lastR.t)}" cy="${Y(lastR.pct)}" r="5" fill="var(--hot)" stroke="var(--surface)" stroke-width="2"/>
+    <line id="lvCross" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-opacity=".35" visibility="hidden"/>
+    <circle id="lvDot" r="5" fill="var(--hot)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>
+  </svg>`;
+  attachHover(box, $("lvBox"), W, (xv) => {
+    const tt = new Date(start.getTime() + (xv - L) / (W - L - R) * (end - start));
+    let best = rows[0]; rows.forEach((r) => { if (Math.abs(r.t - tt) < Math.abs(best.t - tt)) best = r; });
+    return { x: X(best.t), y: Y(best.pct), html: `${fmtDay(best.t)} ${fmtTime(best.t)}<br><b>${fmtN(best.pct)}%</b> · ≈ ${docce(showersAt(best.pct))}${best.boost ? "<br>Boost acceso" : ""}` };
+  }, "lv");
+}
+function attachHover(container, frame, W, pick, prefix) {
+  const svg = container.querySelector("svg"); if (!svg) return;
+  let tip = frame.querySelector(".tip"); if (!tip) { tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; frame.appendChild(tip); }
+  const cross = svg.querySelector(`#${prefix}Cross`), dot = svg.querySelector(`#${prefix}Dot`);
+  const move = (ev) => {
+    const rect = svg.getBoundingClientRect(); const xv = (ev.clientX - rect.left) / rect.width * W;
+    const p = pick(xv); if (!p) return;
+    if (cross) { cross.setAttribute("x1", p.x); cross.setAttribute("x2", p.x); cross.setAttribute("visibility", "visible"); }
+    if (dot) { dot.setAttribute("cx", p.x); dot.setAttribute("cy", p.y); dot.setAttribute("visibility", "visible"); }
+    const sc = rect.width / W, fr = frame.getBoundingClientRect();
+    tip.innerHTML = p.html; tip.hidden = false;
+    tip.style.left = Math.max(80, Math.min(fr.width - 80, rect.left - fr.left + p.x * sc)) + "px";
+    tip.style.top = (rect.top - fr.top + p.y * sc - 10) + "px";
+  };
+  const leave = () => { tip.hidden = true; cross && cross.setAttribute("visibility", "hidden"); dot && dot.setAttribute("visibility", "hidden"); };
+  svg.addEventListener("pointermove", move); svg.addEventListener("pointerdown", move); svg.addEventListener("pointerleave", leave);
+}
+
+/* ================= render: consumi ================= */
+function renderCons() {
+  const price = Number($("price").value) || 0;
+  const last = ((S.consumi && S.consumi.giornalieri) || []).slice(-30);
+  const key = S.cons;
+  const full = last.slice(0, -1);                 // l'ultimo giorno è in corso
+  const vals = full.map((d) => d[key]).filter((v) => v != null);
+  const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  if (key === "kwh") {
+    $("kpis").innerHTML = `
+      <div class="card kpi"><span class="k">Al giorno</span><span class="v">${fmtN(avg, 1)} kWh</span></div>
+      <div class="card kpi"><span class="k">Al mese</span><span class="v">${avg == null ? "–" : fmtN(avg * 30, 0) + " kWh"}</span></div>
+      <div class="card kpi"><span class="k">Costo al mese</span><span class="v">${avg == null ? "–" : "≈ " + fmtN(avg * 30 * price, 0) + " €"}</span></div>`;
+  } else {
+    $("kpis").innerHTML = `
+      <div class="card kpi"><span class="k">Al giorno</span><span class="v">${fmtN(avg, 0)} L</span></div>
+      <div class="card kpi"><span class="k">Docce al giorno</span><span class="v">${avg == null ? "–" : "≈ " + fmtN(avg / SHOWER_L, 0)}</span></div>
+      <div class="card kpi"><span class="k">A persona</span><span class="v">${avg == null ? "–" : fmtN(avg / 5, 0) + " L"}</span></div>`;
+  }
+  const box = $("csChart");
+  if (!last.length) { box.innerHTML = '<div class="empty">Ancora nessun dato di consumo.</div>'; return; }
+  const W = Math.max(300, Math.round(box.clientWidth || 340)), H = 180, L = 34, R = 18, T = 10, B = 26;
+  const nice = niceMax(Math.max(...last.map((d) => d[key] || 0)) || 1);
+  const bw = (W - L - R) / last.length;
+  const Y = (v) => T + (1 - v / nice) * (H - T - B);
+  let g = "";
+  [0, nice].forEach((v) => {
+    g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/>`;
+    g += `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" font-family="var(--mono)" fill="var(--muted)">${fmtN(v)}</text>`;
+  });
+  const color = key === "kwh" ? "var(--cold)" : "var(--hot)";
+  let bars = "";
+  last.forEach((d, i) => {
+    const v = d[key] || 0; const x = L + i * bw + 1; const w = Math.max(2, bw - 2);
+    const y = Y(v), hgt = Y(0) - y, rr = Math.min(4, w / 2, hgt);
+    if (hgt > 0) bars += `<path d="M${x},${Y(0)} V${y + rr} Q${x},${y} ${x + rr},${y} H${x + w - rr} Q${x + w},${y} ${x + w},${y + rr} V${Y(0)} Z" fill="${color}" ${i === last.length - 1 ? 'fill-opacity=".4"' : ""}/>`;
+    if (i % 7 === (last.length - 1) % 7) g += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle" font-size="11" font-family="var(--mono)" fill="var(--muted)">${fmtDayMonth(new Date(d.data + "T00:00:00Z"))}</text>`;
+  });
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Consumo al giorno">${g}${bars}
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
+  attachHover(box, box.parentElement, W, (xv) => {
+    const i = Math.max(0, Math.min(last.length - 1, Math.floor((xv - L) / bw)));
+    const d = last[i], v = d[key];
+    const extra = key === "kwh" && v != null ? ` · ≈ ${fmtN(v * price, 2)} €` : v != null ? ` · ≈ ${docce(Math.round(v / SHOWER_L))}` : "";
+    return { x: L + i * bw + bw / 2, y: Y(v || 0), html: `${fmtDayMonth(new Date(d.data + "T00:00:00Z"))}${i === last.length - 1 ? " (oggi, in corso)" : ""}<br><b>${key === "kwh" ? fmtN(v, 1) + " kWh" : fmtN(v, 0) + " L"}</b>${extra}` };
+  }, "cs");
+}
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
+
+/* ================= render: dettagli ================= */
+function renderDetails() {
+  const s = S.stato || {}; const T = s.temperature || {};
+  const t = s.ora ? new Date(s.ora) : null;
+  const rows = [
+    ["Acqua calda disponibile", s.percentuale != null ? `${fmtN(s.percentuale)}%` : "–"],
+    ["Litri a 40 °C", s.litri_v40 != null ? `${fmtN(s.litri_v40)} L${s.litri_v40_max ? " su " + fmtN(s.litri_v40_max) : ""}` : "–"],
+    ["Temperatura in alto", T.alto != null ? `${fmtN(T.alto, 1)} °C` : "–"],
+    ["Temperatura al centro", T.centro != null ? `${fmtN(T.centro, 1)} °C` : "–"],
+    ["Temperatura sul fondo", T.fondo != null ? `${fmtN(T.fondo, 1)} °C` : "–"],
+    ["Temperatura impostata", s.temperatura_impostata != null ? `${fmtN(s.temperatura_impostata)} °C` : "–"],
+    ["Acqua fredda in ingresso", s.temperatura_acqua_fredda != null ? `${fmtN(s.temperatura_acqua_fredda)} °C` : "–"],
+    ["Potenza in questo momento", s.potenza_w != null ? `${fmtN(s.potenza_w / 1000, 2)} kW` : "–"],
+    ["Ultimo controllo", t ? `${fmtDay(t)} ${fmtTime(t)}` : "–"],
+    ["Esito", s.azione || "–"],
+  ];
+  $("dl").innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+  const ev = S.storico.filter((r) => r.azione === "boost_auto" || r.azione === "boost_manuale").slice(-10).reverse();
+  $("events").innerHTML = ev.length ? ev.map((r) => `<div class="ev"><span>${r.azione === "boost_auto" ? "Automatico" : "Manuale"}, con il ${fmtN(r.pct)}%</span><span class="mono">${fmtDay(r.t)} ${fmtTime(r.t)}</span></div>`).join("")
+    : '<p class="empty">Ancora nessun Boost acceso dallo script.</p>';
+}
+
+function renderAll() { renderHero(); renderPlanNow(); renderProgram(); renderLevel(); renderCons(); renderDetails(); }
+
+/* ================= azioni ================= */
+async function runCommand(modalita, btn, label) {
+  if (S.busy) return; S.busy = true;
+  const b1 = $("btnBoost"), b2 = $("btnRefresh"); b1.disabled = b2.disabled = true;
+  const old = btn.textContent; btn.textContent = label;
+  setStatus("actStatus", "Invio la richiesta…");
+  try {
+    const run = await dispatch(modalita);
+    await loadAll(); S.busy = false; btn.textContent = old; renderAll();
+    if (run.conclusion !== "success") setStatus("actStatus", "Qualcosa non ha funzionato. Apri «Esecuzioni su GitHub» in fondo alla pagina per i dettagli.", "err");
+    else if (modalita === "boost") setStatus("actStatus", S.stato && S.stato.boost ? "Boost acceso: lo scaldabagno sta scaldando al massimo." : (S.stato && S.stato.azione) || "Fatto.", "ok");
+    else setStatus("actStatus", "Dati aggiornati.", "ok");
+  } catch (e) { setStatus("actStatus", e.message, "err"); }
+  finally { S.busy = false; btn.textContent = btn.textContent === label ? old : btn.textContent; b2.disabled = false; b1.disabled = !!(S.stato && S.stato.boost); if (S.stato && S.stato.boost) b1.textContent = "Boost già acceso"; }
+}
+$("btnBoost").addEventListener("click", () => runCommand("boost", $("btnBoost"), "Accendo…"));
+$("btnRefresh").addEventListener("click", () => runCommand("stato", $("btnRefresh"), "Aggiorno…"));
+
+document.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => {
+  S.range = Number(b.dataset.range);
+  document.querySelectorAll("[data-range]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderLevel();
+}));
+document.querySelectorAll("[data-cons]").forEach((b) => b.addEventListener("click", () => {
+  S.cons = b.dataset.cons;
+  document.querySelectorAll("[data-cons]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderCons();
+}));
+$("price").value = store.get("price") || "0.25";
+$("price").addEventListener("input", () => { store.set("price", $("price").value); renderCons(); });
+$("btnLogout").addEventListener("click", () => { store.del("gh_token"); S.token = null; showSetup(); });
+$("lnkActions").href = `https://github.com/${OWNER}/${REPO}/actions`;
+
+/* ================= avvio ================= */
+function showSetup(msg) { $("main").hidden = true; $("setup").hidden = false; $("fresh").textContent = ""; if (msg) setStatus("setupStatus", msg, "err"); }
+async function boot() {
+  if (!S.token) return showSetup();
+  $("setup").hidden = true; $("main").hidden = false; $("fresh").textContent = "Carico…";
+  try { await loadAll(); renderAll(); }
+  catch (e) { if (/chiave/.test(e.message)) return showSetup(e.message); $("fresh").textContent = e.message; }
+}
+$("setupForm").addEventListener("submit", async (e) => {
+  e.preventDefault(); S.token = $("token").value.trim(); setStatus("setupStatus", "Controllo la chiave…");
+  try { await gh(""); store.set("gh_token", S.token); $("token").value = ""; setStatus("setupStatus", ""); boot(); }
+  catch (err) { S.token = null; setStatus("setupStatus", err.notFound ? "Con questa chiave non vedo AutoCozyTouch: controlla di averlo selezionato." : err.message, "err"); }
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden || !S.token || S.busy) return;
+  loadAll().then(() => { renderHero(); renderPlanNow(); if (!isDirty() && S.openId == null) { S.draft = null; renderProgram(); } renderLevel(); renderCons(); renderDetails(); }).catch(() => {});
+});
+let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderLevel(); renderCons(); }, 150); });
+setInterval(() => { if (S.stato) $("fresh").textContent = `Aggiornato ${ago(new Date(S.stato.ora))}`; }, 60000);
+boot();
+</script>
+</body>
+</html>
