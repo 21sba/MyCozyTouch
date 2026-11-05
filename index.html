@@ -312,8 +312,9 @@ input[type="text"] { width: 100%; }
 .kpi .k { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
 .kpi .k.kp { display: inline-flex; align-items: center; gap: 2px; }
 .kpi .k.kp .ic { width: 15px; height: 15px; }
-.kpi .v .x { font-size: .8rem; font-weight: 700; color: var(--muted); letter-spacing: 0; }
-.kpi .v { font-family: var(--display); font-weight: 800; font-size: 1.35rem; letter-spacing: -0.02em; }
+.kpi .v .u { font-size: .78rem; font-weight: 700; letter-spacing: 0; }
+.kpi .v .x { font-size: .72rem; font-weight: 700; color: var(--muted); letter-spacing: 0; }
+.kpi .v { white-space: nowrap; font-family: var(--display); font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; }
 .note { font-size: 0.9rem; color: var(--muted); }
 .controls { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
 .list { display: grid; padding: 6px 0; }
@@ -1200,6 +1201,7 @@ function barChart(box, items, color, tipFn, highlightLast) {
     return { x: L + i * bw + bw / 2, y: Y(items[i].v || 0), html: tipFn(items[i]) };
   }, "cs");
 }
+const U = (u) => `<span class="u"> ${u}</span>`;
 function renderCons() {
   if (S.tab !== "statistiche" || S.stat === "livello") return;
   const pr = price(); const key = S.cons; const isL = key === "litri";
@@ -1212,18 +1214,19 @@ function renderCons() {
   const thisMonth = months.find((m) => m.data.slice(0, 7) === todayYmd.slice(0, 7));
   if (isL) {
     $("kpis").innerHTML = `
-      <div class="card kpi"><span class="k">Oggi</span><span class="v">${(() => { const t = all.find((d) => d.data === todayYmd); return t && t.litri != null ? fmtN(t.litri, 0) + " L" : "–"; })()}</span></div>
-      <div class="card kpi"><span class="k">Media/g</span><span class="v">${fmtN(a30, 0)} L</span></div>
-      <div class="card kpi"><span class="k kp">${ICON.person}/g</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + " L"}<span class="x"> × ${persone}</span></span></div>`;
-    $("consNote").textContent = `Litri di acqua calda (a 40 °C) usati in casa: docce, rubinetti, lavandini ed eventuali elettrodomestici collegati all'acqua calda. Oggi = da mezzanotte a ora. Media e persona: litri al giorno, sugli ultimi 30 giorni (×${persone} = persone in casa).`;
+      <div class="card kpi"><span class="k">Oggi</span><span class="v">${(() => { const t = all.find((d) => d.data === todayYmd); return t && t.litri != null ? fmtN(t.litri, 0) + U("L") : "–"; })()}</span></div>
+      <div class="card kpi"><span class="k">Media/giorno</span><span class="v">${fmtN(a30, 0)}${U("L")}</span></div>
+      <div class="card kpi"><span class="k kp">${ICON.person}/giorno</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + U("L")}<span class="x"> × ${persone}</span></span></div>`;
+    $("consNote").textContent = `Litri di acqua calda (a 40 °C) usati in casa: docce, rubinetti, lavandini ed eventuali elettrodomestici collegati all'acqua calda. Oggi = da mezzanotte a ora. Media e persona: litri al giorno, sugli ultimi 30 giorni (× ${persone} = persone in casa).`;
   } else {
     const both = last30.filter((d) => d.kwh != null && d.litri);
     const per100 = both.length ? both.reduce((a, d) => a + d.kwh, 0) / both.reduce((a, d) => a + d.litri, 0) * 100 : null;
+    const tk = all.find((d) => d.data === todayYmd);
     $("kpis").innerHTML = `
-      <div class="card kpi"><span class="k">Al giorno</span><span class="v">${fmtN(a30, 1)} kWh</span></div>
-      <div class="card kpi"><span class="k">Costo al mese</span><span class="v">${a30 == null ? "–" : "≈ " + fmtN(a30 * 30 * pr, 0) + " €"}</span></div>
-      <div class="card kpi"><span class="k">Ogni 100 L</span><span class="v">${fmtN(per100, 1)} kWh</span></div>`;
-    $("consNote").textContent = `Corrente usata dallo scaldabagno. Costo stimato a ${fmtN(pr, 2)} €/kWh (si cambia nelle Impostazioni). «Ogni 100 L» è quanta corrente serve per scaldare l'acqua: in estate la pompa di calore rende di più e il numero scende.`;
+      <div class="card kpi"><span class="k">Oggi</span><span class="v">${tk && tk.kwh != null ? fmtN(tk.kwh, 1) + U("kWh") : "–"}</span></div>
+      <div class="card kpi"><span class="k">Media/giorno</span><span class="v">${a30 == null ? "–" : fmtN(a30, 1) + U("kWh")}</span></div>
+      <div class="card kpi"><span class="k kp">${ICON.person}/giorno</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 1) + U("kWh")}<span class="x"> × ${persone}</span></span></div>`;
+    $("consNote").textContent = `Oggi = da mezzanotte a ora. Media e persona: kWh al giorno, sugli ultimi 30 giorni (× ${persone} = persone in casa). Costo stimato ≈ ${a30 == null ? "–" : fmtN(a30 * 30 * pr, 0)} € al mese a ${fmtN(pr, 2)} €/kWh (si cambia nelle Impostazioni). Per scaldare 100 L servono circa ${fmtN(per100, 1)} kWh: in estate la pompa di calore rende di più e il numero scende.`;
   }
   const color = isL ? "var(--blue)" : "var(--hot)";
   const unit = (v) => v == null ? "–" : isL ? fmtN(v, 0) + " L" : fmtN(v, 1) + " kWh";
