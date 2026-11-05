@@ -1225,8 +1225,8 @@ function renderCons() {
     $("kpis").innerHTML = `
       <div class="card kpi"><span class="k">Oggi</span><span class="v">${tk && tk.kwh != null ? fmtN(tk.kwh, 1) + U("kWh") : "–"}</span></div>
       <div class="card kpi"><span class="k">Media/giorno</span><span class="v">${a30 == null ? "–" : fmtN(a30, 1) + U("kWh")}</span></div>
-      <div class="card kpi"><span class="k kp">${ICON.person}/giorno</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 1) + U("kWh")}<span class="x"> × ${persone}</span></span></div>`;
-    $("consNote").textContent = `Oggi = da mezzanotte a ora. Media e persona: kWh al giorno, sugli ultimi 30 giorni (× ${persone} = persone in casa). Costo stimato ≈ ${a30 == null ? "–" : fmtN(a30 * 30 * pr, 0)} € al mese a ${fmtN(pr, 2)} €/kWh (si cambia nelle Impostazioni). Per scaldare 100 L servono circa ${fmtN(per100, 1)} kWh: in estate la pompa di calore rende di più e il numero scende.`;
+      <div class="card kpi"><span class="k">Costo/mese</span><span class="v">${a30 == null ? "–" : "≈ " + fmtN(a30 * 30 * pr, 0) + U("€")}</span></div>`;
+    $("consNote").textContent = `Oggi = da mezzanotte a ora. Media: kWh al giorno, sugli ultimi 30 giorni. Costo/mese: la media per 30 giorni, a ${fmtN(pr, 2)} €/kWh (il prezzo si cambia nelle Impostazioni). Per scaldare 100 L servono circa ${fmtN(per100, 1)} kWh: in estate la pompa di calore rende di più e il numero scende.`;
   }
   const color = isL ? "var(--blue)" : "var(--hot)";
   const unit = (v) => v == null ? "–" : isL ? fmtN(v, 0) + " L" : fmtN(v, 1) + " kWh";
