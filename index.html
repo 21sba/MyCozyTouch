@@ -1192,14 +1192,14 @@ function barChart(box, items, color, tipFn, highlightLast) {
   [0, nice / 2, nice].forEach((v) => {
     g += `<text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="12" font-family="var(--body)" fill="var(--muted)">${v >= 1000 ? fmtN(v / 1000, v % 1000 ? 1 : 0) + "k" : fmtN(v, v < 10 && v % 1 ? 1 : 0)}</text>`;
   });
-  const every = Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor((W - L - R) / (items.length > 12 ? 52 : 34)))));
+  const every = Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor((W - L - R) / (items.length > 12 ? 52 : 22)))));
   let bars = "";
   items.forEach((d, i) => {
     const v = d.v || 0; const w = Math.max(4, Math.min(22, bw * 0.62)); const x = L + i * bw + (bw - w) / 2;
     const y = Y(v), hgt = Y(0) - y;
     bars += `<rect x="${x}" y="${T}" width="${w}" height="${H - T - B}" rx="${w / 2}" fill="var(--track)"/>`;
-    if (hgt > 0) bars += `<rect x="${x}" y="${Math.min(y, Y(0) - w)}" width="${w}" height="${Math.max(hgt, w)}" rx="${w / 2}" fill="${color}" ${highlightLast && i === items.length - 1 ? 'fill-opacity=".45"' : ""}/>`;
-    if ((items.length - 1 - i) % every === 0) g += `<text x="${x + w / 2}" y="${H - 6}" text-anchor="middle" font-size="12" font-family="var(--body)" fill="var(--muted)">${d.label}</text>`;
+    if (hgt > 0) bars += `<rect x="${x}" y="${Math.min(y, Y(0) - w)}" width="${w}" height="${Math.max(hgt, w)}" rx="${w / 2}" fill="${color}" ${d.partial || (highlightLast && i === items.length - 1) ? 'fill-opacity=".45"' : ""}/>`;
+    if ((items.length - 1 - i) % every === 0) g += `<text x="${x + w / 2}" y="${H - 6}" text-anchor="middle" font-size="${items.length >= 12 && items.length <= 12 ? 11 : 12}" font-family="var(--body)" fill="var(--muted)">${d.label}</text>`;
   });
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Consumi">${g}${bars}<rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
   attachHover(box, box.parentElement, W, (xv) => {
@@ -1275,13 +1275,19 @@ function renderCons() {
     weekNote = top ? `Consumate di più il ${WEEK_L[top.i]} e di meno la ${WEEK_L[low.i]}. ` : "";
     barChart(box, items, color, (it) => `${WEEK_L[it.i]} · media su ${it.n} giorni<br><b>${unit(it.v)}</b>${cost(it.v)}`, false);
   } else {
-    const items = months.slice(-12).map((m) => { const [y, mo] = m.data.split("-").map(Number); return { v: m[key], label: MONTHS_S[mo - 1], m, y, mo }; });
+    // tutto l'anno in corso, da gennaio a dicembre: i mesi che devono ancora arrivare restano vuoti
+    const [cy, cm] = todayYmd.split("-").map(Number);
+    const items = Array.from({ length: 12 }, (_, i) => {
+      const mo = i + 1; const m = months.find((x) => x.data.slice(0, 7) === `${cy}-${String(mo).padStart(2, "0")}`);
+      return { v: m ? m[key] : null, label: MONTHS_S[i], m, y: cy, mo, future: mo > cm, partial: mo === cm };
+    });
     $("csCaption").textContent = isL ? "Litri al mese" : "kWh al mese";
     barChart(box, items, color, (it) => {
+      if (!it.m) return `${MONTHS[it.mo - 1]} ${it.y}<br>${it.future ? "Non ancora arrivato" : "Nessun dato"}`;
       const eff = it.m.kwh != null && it.m.litri ? `<br>${fmtN(it.m.kwh / it.m.litri * 100, 1)} kWh ogni 100 L` : "";
       const curM = it.m.data.slice(0, 7) === todayYmd.slice(0, 7) ? " (in corso)" : "";
       return `${MONTHS[it.mo - 1]} ${it.y}${curM}<br><b>${unit(it.v)}</b>${cost(it.v)}${eff}`;
-    }, months.length && months[months.length - 1].data.slice(0, 7) === todayYmd.slice(0, 7));
+    }, false);
   }
   if (weekNote) $("consNote").textContent = weekNote + $("consNote").textContent;
 }
