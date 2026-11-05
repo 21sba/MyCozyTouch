@@ -26,6 +26,11 @@
   --line: #dde3ea;
   --hot: #c4511f;
   --hot-soft: #f7e0d4;
+  --water-top: #ef7440;
+  --water-deep: #b5401a;
+  --shell: #ffffff;
+  --shell-edge: #c9d2db;
+  --empty: #dfe8ef;
   --on-hot: #ffffff;
   --cold: #3d7fa6;
   --cold-soft: #d8e7f0;
@@ -45,7 +50,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0f151b; --surface: #172029; --sunk: #111920; --ink: #e8eef3; --muted: #93a1ae; --line: #263340;
-    --hot: #ef7a45; --hot-soft: #3a2219; --on-hot: #1d0f08; --cold: #6aaed6; --cold-soft: #16303f;
+    --hot: #ef7a45; --hot-soft: #3a2219; --water-top: #ff9258; --water-deep: #c4471d; --shell: #2a3642; --shell-edge: #46566a; --empty: #1c2a36; --on-hot: #1d0f08; --cold: #6aaed6; --cold-soft: #16303f;
     --sun: #e6b84a; --sun-soft: #33290f; --good: #5cbf85; --warn: #e0a83a; --bad: #ee6a62;
     --scrim: rgba(0, 0, 0, .6);
     color-scheme: dark;
@@ -123,9 +128,22 @@ a { color: var(--cold); }
 
 /* ---------- Casa ---------- */
 .home { display: grid; gap: 18px; }
-.hero { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
-.tank { width: 100px; height: 176px; }
-.tank svg { width: 100%; height: 100%; display: block; }
+.hero { position: relative; display: grid; justify-items: center; gap: 10px; text-align: center; padding-top: 4px; }
+.hero::before { content: ""; position: absolute; left: 50%; top: 46%; width: 340px; height: 340px; transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--hot) calc(var(--glow, .5) * 34%), transparent), transparent);
+  pointer-events: none; z-index: 0; transition: opacity .6s; }
+.hero > * { position: relative; z-index: 1; }
+.tank { width: 168px; height: 268px; }
+.tank svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.tank .wave-a { animation: waveA 5.5s linear infinite; }
+.tank .wave-b { animation: waveB 8s linear infinite; }
+.tank .bubble { animation: rise 3.2s ease-in infinite; opacity: 0; }
+.tank .pct-in { animation: breathe 6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes waveA { from { transform: translateX(0); } to { transform: translateX(-120px); } }
+@keyframes waveB { from { transform: translateX(-120px); } to { transform: translateX(0); } }
+@keyframes rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .75; } 100% { transform: translateY(-120px); opacity: 0; } }
+@keyframes breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+.hero .answer { justify-items: center; }
 .answer { display: grid; gap: 8px; min-width: 0; }
 .verdict { font-size: 0.92rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
 .verdict .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
@@ -133,7 +151,7 @@ a { color: var(--cold); }
 .verdict.warn { color: var(--warn); } .verdict.warn .dot { background: var(--warn); }
 .verdict.bad { color: var(--bad); }   .verdict.bad .dot { background: var(--bad); }
 .showers { font-family: var(--display); font-weight: 700; font-size: 2.7rem; line-height: 1; letter-spacing: -0.03em; }
-.showers span { font-size: 1.1rem; font-weight: 500; letter-spacing: 0; color: var(--muted); display: block; margin-top: 6px; font-family: var(--body); }
+.showers span { font-size: 1.1rem; font-weight: 500; letter-spacing: 0; color: var(--muted); display: block; margin-top: 8px; font-family: var(--body); }
 .showers .temp { font-weight: 600; color: var(--ink); }
 .state { font-size: 0.95rem; }
 .state b { font-weight: 600; }
@@ -173,8 +191,8 @@ a { color: var(--cold); }
   .home { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; gap: 22px; }
   .home .status-col { display: grid; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; }
   .home .wide { grid-column: 1 / -1; }
-  .hero { gap: 28px; }
-  .tank { width: 120px; height: 210px; }
+  .hero { gap: 12px; }
+  .tank { width: 190px; height: 300px; }
   .showers { font-size: 3.2rem; }
 }
 
@@ -295,11 +313,11 @@ input[type="text"] { width: 100%; }
 .field input { padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-family: var(--mono); font-size: 0.9rem; min-width: 0; width: 100%; }
 
 @media (max-width: 380px) {
-  .tank { width: 84px; height: 148px; }
+  .tank { width: 150px; height: 240px; }
   .showers { font-size: 2.3rem; }
   .period { grid-template-columns: 84px 1fr auto; padding: 12px 14px; }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } .tank .bubble { display: none; } }
 </style>
 </head>
 <body>
@@ -348,7 +366,7 @@ input[type="text"] { width: 100%; }
         </div>
         <div class="home">
           <div class="status-col">
-            <div class="hero">
+            <div class="hero" id="hero">
               <div class="tank" id="tank" role="img" aria-label="Serbatoio"></div>
               <div class="answer">
                 <p class="verdict" id="verdict"><span class="dot"></span><span id="verdictText">–</span></p>
@@ -741,17 +759,41 @@ function renderHome() {
   renderNowCard();
 }
 function drawTank(pct, warm) {
-  const W = 100, H = 176, x = 8, y = 10, w = 84, h = 160, r = 36;
-  const p = pct == null ? 0 : Math.max(0, Math.min(100, pct)); const fillH = h * p / 100;
+  // serbatoio: guscio smaltato, acqua con onde e bollicine, riflesso e ombra
+  const W = 168, H = 268, x = 14, y = 22, w = 140, h = 226, r = 64;
+  const p = pct == null ? 0 : Math.max(0, Math.min(100, pct));
+  const ix = x + 8, iy = y + 8, iw = w - 16, ih = h - 16, ir = r - 8;
+  const level = iy + ih - ih * p / 100;
+  const wave = (amp, len, off) => { let d = `M${ix - 140},${level}`; for (let X = ix - 140; X <= ix + iw + 140; X += len) d += ` q${len / 4},${-amp} ${len / 2},0 q${len / 4},${amp} ${len / 2},0`; return d + ` V${iy + ih + 4} H${ix - 140} Z`; };
+  const bubbles = warm && p > 5 ? [0, 1, 2, 3, 4].map((i) => {
+    const bx = ix + 18 + i * (iw - 36) / 4 + (i % 2 ? 6 : -4); const by = iy + ih - 10;
+    return `<circle class="bubble" cx="${bx}" cy="${by}" r="${2 + (i % 3)}" fill="#fff" fill-opacity=".55" style="animation-delay:${(i * 0.65).toFixed(2)}s;animation-duration:${(2.6 + (i % 3) * 0.6).toFixed(1)}s"/>`;
+  }).join("") : "";
+  $("hero").style.setProperty("--glow", (0.25 + p / 100 * 0.75).toFixed(2));
   $("tank").setAttribute("aria-label", pct == null ? "Serbatoio, dato non disponibile" : `Serbatoio al ${Math.round(p)}%`);
   $("tank").innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">
-    <defs><clipPath id="tc"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/></clipPath></defs>
-    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="var(--cold-soft)"/>
-    <g clip-path="url(#tc)"><rect x="${x}" y="${y + h - fillH}" width="${w}" height="${fillH}" fill="var(--hot)"/>
-      ${warm ? `<rect x="${x}" y="${y + h - 8}" width="${w}" height="8" fill="#fff" opacity=".35"/>` : ""}</g>
-    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="none" stroke="var(--ink)" stroke-opacity=".15" stroke-width="2"/>
-    <rect x="${x + w / 2 - 11}" y="1" width="22" height="9" rx="3" fill="var(--line)"/>
-    ${pct == null ? "" : `<text x="${x + w / 2}" y="${y + h / 2 + 9}" text-anchor="middle" font-family="var(--display)" font-weight="700" font-size="27" fill="${p >= 55 ? "var(--on-hot)" : "var(--ink)"}" style="letter-spacing:-0.02em">${Math.round(p)}<tspan font-size="15" font-weight="500" dx="1">%</tspan></text>`}
+    <defs>
+      <linearGradient id="tShell" x1="0" x2="1"><stop offset="0" stop-color="var(--shell-edge)"/><stop offset=".22" stop-color="var(--shell)"/><stop offset=".7" stop-color="var(--shell)"/><stop offset="1" stop-color="var(--shell-edge)"/></linearGradient>
+      <linearGradient id="tWater" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--water-top)"/><stop offset="1" stop-color="var(--water-deep)"/></linearGradient>
+      <linearGradient id="tSide" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".25" stop-color="#000" stop-opacity="0"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></linearGradient>
+      <linearGradient id="tShine" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      <radialGradient id="tShadow"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+      <clipPath id="tIn"><rect x="${ix}" y="${iy}" width="${iw}" height="${ih}" rx="${ir}"/></clipPath>
+    </defs>
+    <ellipse cx="${x + w / 2}" cy="${y + h + 8}" rx="${w * 0.48}" ry="9" fill="url(#tShadow)"/>
+    <rect x="${x + w / 2 - 22}" y="${y - 14}" width="44" height="18" rx="6" fill="url(#tShell)" stroke="var(--shell-edge)"/>
+    <rect x="${x + w / 2 - 34}" y="${y - 6}" width="10" height="12" rx="3" fill="var(--cold)" opacity=".8"/>
+    <rect x="${x + w / 2 + 24}" y="${y - 6}" width="10" height="12" rx="3" fill="var(--water-top)" opacity=".9"/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#tShell)" stroke="var(--shell-edge)" stroke-width="1.5"/>
+    <g clip-path="url(#tIn)">
+      <rect x="${ix}" y="${iy}" width="${iw}" height="${ih}" fill="var(--empty)"/>
+      ${pct == null ? "" : `<path class="wave-b" d="${wave(5, 60, 0)}" fill="var(--water-top)" opacity=".45"/>
+      <path class="wave-a" d="${wave(4, 60, 0)}" fill="url(#tWater)"/>`}
+      ${bubbles}
+      <rect x="${ix}" y="${iy}" width="${iw}" height="${ih}" fill="url(#tSide)"/>
+      <rect x="${ix + iw * 0.16}" y="${iy + 14}" width="${iw * 0.12}" height="${ih - 28}" rx="${iw * 0.06}" fill="url(#tShine)" opacity=".7"/>
+    </g>
+    ${pct == null ? "" : `<g class="pct-in"><text x="${x + w / 2}" y="${iy + ih / 2 + 14}" text-anchor="middle" font-family="var(--display)" font-weight="700" font-size="42" fill="${p >= 52 ? "#fff" : "var(--ink)"}" style="letter-spacing:-0.03em${p >= 52 ? ";paint-order:stroke;stroke:rgba(0,0,0,.12);stroke-width:2px" : ""}">${Math.round(p)}<tspan font-size="22" font-weight="500" dx="2">%</tspan></text></g>`}
   </svg>`;
 }
 function renderNowCard() {
