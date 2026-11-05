@@ -471,11 +471,7 @@ input[type="text"] { width: 100%; }
           </div>
           <div class="card chartbox" id="lvBox">
             <div id="lvChart"></div>
-            <div class="legend">
-              <span><i style="background:var(--hot)"></i>Acqua calda</span>
-              <span><i style="background:transparent;border-top:2px dashed var(--muted);height:0;border-radius:0"></i>Minimo della fascia</span>
-              <span><i style="background:var(--hot-soft)"></i>Boost acceso</span>
-            </div>
+            <p class="small muted" style="padding:0 8px 2px">Acqua calda nel serbatoio. La fiammella segna quando è partito il Boost.</p>
           </div>
           <div class="group">
             <p class="eyebrow">Ultimi Boost accesi</p>
@@ -492,7 +488,7 @@ input[type="text"] { width: 100%; }
             </div>
           </div>
           <div class="card chartbox" id="csBox">
-            <p class="small muted" id="csCaption" style="padding:0 8px 4px"></p>
+            <p class="small muted" id="csCaption" style="padding:0 8px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></p>
             <div id="csChart"></div>
           </div>
           <div class="kpis" id="kpis"></div>
@@ -1056,54 +1052,73 @@ function sheetAdvice() {
 }
 
 /* ================= STATISTICHE ================= */
+function smoothPath(pts) {
+  // curva morbida che passa per i punti (Catmull-Rom -> Bezier), senza superare 0..100
+  if (pts.length < 2) return "";
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const t = 0.18;
+    const c1 = [p1[0] + (p2[0] - p0[0]) * t, p1[1] + (p2[1] - p0[1]) * t];
+    const c2 = [p2[0] - (p3[0] - p1[0]) * t, p2[1] - (p3[1] - p1[1]) * t];
+    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
 function drawLevel(box, frame, range, prefix) {
   const end = new Date(); const start = new Date(end.getTime() - range * 86400000);
-  const rows = S.storico.filter((r) => r.t >= start);
-  if (rows.length < 2) { box.innerHTML = '<div class="empty">Il grafico si riempie da solo, con un punto ogni 30 minuti.</div>'; return; }
-  const W = Math.max(300, Math.round(box.clientWidth || 340)), H = W > 600 ? 240 : 210, L = 38, R = 18, T = 10, B = 26;
+  const raw = S.storico.filter((r) => r.t >= start);
+  if (raw.length < 2) { box.innerHTML = '<div class="empty">Il grafico si riempie da solo, con un punto ogni 30 minuti.</div>'; return; }
+  const bucket = range === 1 ? 0 : range === 3 ? 2 : 4; // ore per punto
+  let rows = raw;
+  if (bucket) {
+    const g = new Map();
+    raw.forEach((r) => { const k = Math.floor(r.t.getTime() / (bucket * 3600000)); const e = g.get(k) || { t: 0, pct: 0, n: 0, boost: false }; e.t += r.t.getTime(); e.pct += r.pct; e.n++; e.boost = e.boost || r.boost; g.set(k, e); });
+    rows = [...g.values()].map((e) => ({ t: new Date(e.t / e.n), pct: e.pct / e.n, boost: e.boost }));
+    rows.push(raw[raw.length - 1]);
+  }
+  const W = Math.max(300, Math.round(box.clientWidth || 340)), H = W > 600 ? 230 : 200, L = 14, R = 14, T = 26, B = 28;
   const X = (d) => L + (d - start) / (end - start) * (W - L - R);
-  const Y = (v) => T + (100 - v) / 100 * (H - T - B);
-  let grid = "";
-  [0, 50, 100].forEach((v) => {
-    grid += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/>`;
-    grid += `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="12" font-family="var(--body)" fill="var(--muted)">${v}%</text>`;
-  });
-  const stepH = range === 1 ? (W > 600 ? 3 : 6) : range === 3 ? (W > 600 ? 6 : 12) : 24;
+  const Y = (v) => T + (100 - Math.max(0, Math.min(100, v))) / 100 * (H - T - B);
+  const pts = rows.map((r) => [X(r.t), Y(r.pct)]);
+  const line = smoothPath(pts);
+  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${Y(0)} L${pts[0][0].toFixed(1)},${Y(0)} Z`;
+  let labels = "";
+  const stepH = range === 1 ? 6 : range === 3 ? 24 : 24;
   const first = new Date(start); first.setMinutes(0, 0, 0);
   for (let d = new Date(first.getTime() + 3600000); d <= end; d = new Date(d.getTime() + 3600000)) {
     const hm = romeMinutes(d); if (hm % (stepH * 60) !== 0) continue;
-    const lbl = range === 1 ? fmtTime(d) : hm === 0 ? fmtDay(d) : fmtTime(d);
-    grid += `<line x1="${X(d)}" x2="${X(d)}" y1="${T}" y2="${H - B}" stroke="var(--line)" stroke-dasharray="2 4"/>`;
-    grid += `<text x="${X(d)}" y="${H - 8}" text-anchor="middle" font-size="12" font-family="var(--body)" fill="var(--muted)">${lbl}</text>`;
+    if (range === 7 && romeParts(d).d % 2) continue;
+    const lbl = range === 1 ? fmtTime(d) : fmtDay(d);
+    labels += `<text x="${X(d)}" y="${H - 6}" text-anchor="middle" font-size="12" font-family="var(--body)" fill="var(--muted)">${lbl}</text>`;
   }
-  let bands = "";
-  for (let i = 0; i < rows.length; i++) {
-    if (!rows[i].boost) continue; let j = i; while (j + 1 < rows.length && rows[j + 1].boost) j++;
-    const x1 = X(rows[i].t), x2 = j + 1 < rows.length ? X(rows[j + 1].t) : X(rows[j].t) + 4;
-    bands += `<rect x="${x1}" y="${T}" width="${Math.max(3, x2 - x1)}" height="${H - T - B}" fill="var(--hot-soft)"/>`; i = j;
-  }
-  let thr = "", seg = [];
-  const flush = () => { if (seg.length > 1) thr += `<path d="${seg.join(" ")}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>`; seg = []; };
-  rows.forEach((r, i) => { if (r.soglia == null) { flush(); return; }
-    const nx = i + 1 < rows.length ? X(rows[i + 1].t) : X(r.t);
-    seg.push(`${seg.length ? "L" : "M"}${X(r.t)},${Y(r.soglia)}`); seg.push(`L${nx},${Y(r.soglia)}`); });
-  flush();
-  const pts = rows.map((r) => `${X(r.t).toFixed(1)},${Y(r.pct).toFixed(1)}`);
-  const area = `M${X(rows[0].t)},${Y(0)} L${pts.join(" L")} L${X(rows[rows.length - 1].t)},${Y(0)} Z`;
-  const lastR = rows[rows.length - 1];
+  // fiammelle dove parte un Boost
+  let flames = "";
+  let lastFx = -99;
+  rows.forEach((r, i) => {
+    if (!r.boost || (i > 0 && rows[i - 1].boost)) return;
+    const fx = X(r.t); if (fx - lastFx < 26) return; lastFx = fx;
+    const fy = Y(r.pct) - 14;
+    flames += `<g transform="translate(${(fx - 8).toFixed(1)},${(fy - 8).toFixed(1)})"><circle cx="8" cy="8" r="9" fill="var(--hot)" stroke="var(--surface)" stroke-width="2"/><path d="M8.4 3.6c.2 1.3-.5 2.1-1.1 2.9-.7.8-1.5 1.7-1.5 3.1a2.2 2.2 0 0 0 4.4 0c0-.8-.3-1.4-.7-2-.1.6-.4 1-.9 1.3.2-1.4-.1-2.9-.2-5.3z" fill="#fff"/></g>`;
+  });
+  const lastP = pts[pts.length - 1];
+  const gid = prefix + "Grad";
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Acqua calda nel tempo">
-    ${bands}${grid}${thr}
-    <path d="${area}" fill="var(--hot)" fill-opacity=".14"/>
-    <polyline points="${pts.join(" ")}" fill="none" stroke="var(--hot)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${X(lastR.t)}" cy="${Y(lastR.pct)}" r="5" fill="var(--hot)" stroke="var(--surface)" stroke-width="2"/>
-    <line id="${prefix}Cross" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-opacity=".35" visibility="hidden"/>
-    <circle id="${prefix}Dot" r="5" fill="var(--hot)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>
-    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--hot)" stop-opacity=".35"/><stop offset="1" stop-color="var(--hot)" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--track)" stroke-width="2" stroke-linecap="round"/>
+    <path d="${area}" fill="url(#${gid})"/>
+    <path d="${line}" fill="none" stroke="var(--hot)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    ${flames}
+    <circle cx="${lastP[0]}" cy="${lastP[1]}" r="6" fill="var(--hot)" stroke="var(--surface)" stroke-width="3"/>
+    ${labels}
+    <line id="${prefix}Cross" x1="0" x2="0" y1="${T}" y2="${Y(0)}" stroke="var(--ink)" stroke-opacity=".18" stroke-width="1.5" visibility="hidden"/>
+    <circle id="${prefix}Dot" r="6" fill="var(--hot)" stroke="var(--surface)" stroke-width="3" visibility="hidden"/>
+    <rect x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent"/>
   </svg>`;
   attachHover(box, frame, W, (xv) => {
     const tt = new Date(start.getTime() + (xv - L) / (W - L - R) * (end - start));
     let best = rows[0]; rows.forEach((r) => { if (Math.abs(r.t - tt) < Math.abs(best.t - tt)) best = r; });
-    return { x: X(best.t), y: Y(best.pct), html: `${fmtDay(best.t)} ${fmtTime(best.t)}<br><b>${fmtN(best.pct)}%</b> · ≈ ${docce(showersAt(best.pct))}${best.boost ? "<br>Boost acceso" : ""}` };
+    return { x: X(best.t), y: Y(best.pct), html: `${fmtDay(best.t)} ${fmtTime(best.t)}<br><b>${fmtN(best.pct)}%</b> · ${docce(showersAt(best.pct))}${best.boost ? "<br>Boost acceso" : ""}` };
   }, prefix);
 }
 function attachHover(container, frame, W, pick, prefix) {
@@ -1138,7 +1153,7 @@ function barChart(box, items, color, tipFn, highlightLast) {
   const bw = (W - L - R) / items.length; const Y = (v) => T + (1 - v / nice) * (H - T - B);
   let g = "";
   [0, nice / 2, nice].forEach((v) => {
-    g += `<text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="12" font-family="var(--body)" fill="var(--muted)">${fmtN(v, v < 10 && v % 1 ? 1 : 0)}</text>`;
+    g += `<text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="12" font-family="var(--body)" fill="var(--muted)">${v >= 1000 ? fmtN(v / 1000, v % 1000 ? 1 : 0) + "k" : fmtN(v, v < 10 && v % 1 ? 1 : 0)}</text>`;
   });
   const every = Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor((W - L - R) / (items.length > 12 ? 52 : 34)))));
   let bars = "";
@@ -1183,7 +1198,7 @@ function renderCons() {
   const color = isL ? "var(--blue)" : "var(--hot)";
   const unit = (v) => v == null ? "–" : isL ? fmtN(v, 0) + " L" : fmtN(v, 1) + " kWh";
   const cost = (v) => !isL && v != null ? ` · ≈ ${fmtN(v * pr, v * pr < 10 ? 2 : 0)} €` : "";
-  const box = $("csChart");
+  const box = $("csChart"); let weekNote = "";
   if (S.view === "giorni") {
     const items = all.slice(-30).map((d) => ({ v: d[key], label: fmtDayMonth(new Date(d.data + "T00:00:00Z")), d }));
     $("csCaption").textContent = isL ? "Litri al giorno, ultimi 30 giorni" : "kWh al giorno, ultimi 30 giorni";
@@ -1195,7 +1210,8 @@ function renderCons() {
     const vals = items.filter((x) => x.v != null);
     const top = vals.length ? vals.reduce((a, b) => (b.v > a.v ? b : a)) : null;
     const low = vals.length ? vals.reduce((a, b) => (b.v < a.v ? b : a)) : null;
-    $("csCaption").textContent = top ? `Media per giorno della settimana. Consumate di più il ${WEEK_L[top.i]}, di meno il ${WEEK_L[low.i]}.` : "";
+    $("csCaption").textContent = isL ? "Litri in media, per giorno della settimana" : "kWh in media, per giorno della settimana";
+    weekNote = top ? `Consumate di più il ${WEEK_L[top.i]} e di meno la ${WEEK_L[low.i]}. ` : "";
     barChart(box, items, color, (it) => `${WEEK_L[it.i]} · media su ${it.n} giorni<br><b>${unit(it.v)}</b>${cost(it.v)}`, false);
   } else {
     const items = months.slice(-12).map((m) => { const [y, mo] = m.data.split("-").map(Number); return { v: m[key], label: MONTHS_S[mo - 1], m, y, mo }; });
@@ -1206,7 +1222,9 @@ function renderCons() {
       return `${MONTHS[it.mo - 1]} ${it.y}${curM}<br><b>${unit(it.v)}</b>${cost(it.v)}${eff}`;
     }, months.length && months[months.length - 1].data.slice(0, 7) === todayYmd.slice(0, 7));
   }
+  if (weekNote) $("consNote").textContent = weekNote + $("consNote").textContent;
 }
+
 function setStat(which) {
   S.stat = which; document.querySelectorAll("[data-stat]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.stat === which)));
   if (which !== "livello") S.cons = which;
