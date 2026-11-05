@@ -67,6 +67,11 @@ button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
 a { color: var(--cold); }
+.ic { width: 20px; height: 20px; flex: none; }
+.srow > span:first-child { display: inline-flex; align-items: center; gap: 12px; }
+.srow .ibox { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--sunk); color: var(--ink); }
+.seg button .ic { width: 15px; height: 15px; vertical-align: -2px; margin-right: 5px; }
+.state .ic, .now-card .ic { width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
 
 /* ---------- impalcatura ---------- */
@@ -79,7 +84,7 @@ a { color: var(--cold); }
   padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 28px);
 }
 .view { display: grid; gap: 18px; }
-.viewhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
+.viewhead { display: flex; align-items: center; justify-content: space-between; gap: 10px 12px; min-height: 40px; flex-wrap: wrap; }
 .fresh { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--muted); border: 0; background: none; padding: 6px 0; }
 .fresh svg { width: 16px; height: 16px; }
 .fresh.spin svg { animation: spin 1s linear infinite; }
@@ -174,7 +179,7 @@ a { color: var(--cold); }
 }
 
 /* ---------- programma ---------- */
-.seg { display: inline-flex; background: var(--sunk); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg { display: inline-flex; background: var(--sunk); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: nowrap; }
 .seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-size: 0.86rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 .seg button .inuse { font-size: 0.7rem; font-weight: 700; color: var(--good); margin-left: 4px; }
@@ -402,8 +407,8 @@ input[type="text"] { width: 100%; }
         <div class="viewhead">
           <h1 id="h-stat">Statistiche</h1>
           <div class="seg" role="group" aria-label="Cosa vedere">
-            <button type="button" data-stat="livello" aria-pressed="true">Acqua calda</button>
-            <button type="button" data-stat="consumi" aria-pressed="false">Consumi</button>
+            <button type="button" data-stat="livello" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>Acqua calda</button>
+            <button type="button" data-stat="consumi" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg>Consumi</button>
           </div>
         </div>
 
@@ -433,8 +438,8 @@ input[type="text"] { width: 100%; }
         <div id="statCons" class="view" hidden>
           <div class="controls">
             <div class="seg" role="group" aria-label="Misura">
-              <button type="button" data-cons="litri" aria-pressed="true">Acqua</button>
-              <button type="button" data-cons="kwh" aria-pressed="false">Corrente</button>
+              <button type="button" data-cons="litri" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>Acqua</button>
+              <button type="button" data-cons="kwh" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg>Corrente</button>
             </div>
             <div class="seg" role="group" aria-label="Raggruppa per">
               <button type="button" data-view="giorni" aria-pressed="true">30 giorni</button>
@@ -457,25 +462,25 @@ input[type="text"] { width: 100%; }
         <div class="group">
           <p class="eyebrow">Scaldabagno</p>
           <div class="card settings">
-            <button class="srow" type="button" data-sheet="vacanza"><span>Vacanza</span><span class="val" id="sumVac"></span></button>
-            <button class="srow" type="button" data-sheet="temperatura"><span>Temperatura dell'acqua</span><span class="val" id="sumTemp"></span></button>
-            <button class="srow" type="button" data-sheet="stagioni"><span>Estate e inverno</span><span class="val" id="sumSeason"></span></button>
+            <button class="srow" type="button" data-sheet="vacanza"><span><span class="ibox" style="background:var(--cold-soft);color:var(--cold)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M12 21V9"/><path d="M12 9c-2-3-6-3-8-1 3 0 5 1 8 1z"/><path d="M12 9c2-3 6-3 8-1-3 0-5 1-8 1z"/><path d="M12 9c-1-3-1-5 1-6"/></svg></span>Vacanza</span><span class="val" id="sumVac"></span></button>
+            <button class="srow" type="button" data-sheet="temperatura"><span><span class="ibox" style="background:var(--hot-soft);color:var(--hot)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 11v6"/></svg></span>Temperatura dell'acqua</span><span class="val" id="sumTemp"></span></button>
+            <button class="srow" type="button" data-sheet="stagioni"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.8 3.8l1 1M11.2 11.2l1 1M3.8 12.2l1-1M11.2 4.8l1-1"/><path d="M17 12v10M13 17h8M14.2 14.2l5.6 5.6M19.8 14.2l-5.6 5.6"/></svg></span>Estate e inverno</span><span class="val" id="sumSeason"></span></button>
           </div>
         </div>
         <div class="group">
           <p class="eyebrow">Extra</p>
           <div class="card settings">
-            <button class="srow" type="button" data-sheet="notifiche"><span>Notifiche sul telefono</span><span class="val" id="sumNotif"></span></button>
-            <button class="srow" type="button" data-sheet="sole"><span>Pannelli solari</span><span class="val" id="sumSun"></span></button>
-            <button class="srow" type="button" data-sheet="prezzo"><span>Prezzo della corrente</span><span class="val" id="sumPrice"></span></button>
+            <button class="srow" type="button" data-sheet="notifiche"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21h4"/></svg></span>Notifiche sul telefono</span><span class="val" id="sumNotif"></span></button>
+            <button class="srow" type="button" data-sheet="sole"><span><span class="ibox" style="background:var(--sun-soft);color:var(--sun)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>Pannelli solari</span><span class="val" id="sumSun"></span></button>
+            <button class="srow" type="button" data-sheet="prezzo"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6.5A7 7 0 1 0 18 17.5"/><path d="M4 10h10M4 14h10"/></svg></span>Prezzo della corrente</span><span class="val" id="sumPrice"></span></button>
           </div>
         </div>
         <div class="group">
           <p class="eyebrow">Altro</p>
           <div class="card settings">
-            <button class="srow" type="button" data-sheet="dettagli"><span>Dettagli tecnici</span><span class="val"></span></button>
-            <a class="srow" id="lnkActions" href="#" target="_blank" rel="noopener"><span>Esecuzioni su GitHub</span><span class="val">↗</span></a>
-            <button class="srow noarrow" type="button" id="btnLogout"><span style="color:var(--bad)">Scollega questo dispositivo</span><span class="val"></span></button>
+            <button class="srow" type="button" data-sheet="dettagli"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></span>Dettagli tecnici</span><span class="val"></span></button>
+            <a class="srow noarrow" id="lnkActions" href="#" target="_blank" rel="noopener"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5H5V6h5"/></svg></span>Esecuzioni su GitHub</span><span class="val">↗</span></a>
+            <button class="srow noarrow" type="button" id="btnLogout"><span style="color:var(--bad)"><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h4v16h-4"/><path d="M10 8l-4 4 4 4"/><path d="M6 12h10"/></svg></span>Scollega questo dispositivo</span><span class="val"></span></button>
           </div>
         </div>
       </section>
@@ -502,6 +507,15 @@ const MONTHS = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "l
 const MONTHS_S = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
 const WEEK = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 const WEEK_L = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
+const ICON = {
+  snow: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M4 7l16 10M20 7 4 17"/></svg>`,
+  sun: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`,
+  info: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>`,
+  vac: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M12 21V9"/><path d="M12 9c-2-3-6-3-8-1 3 0 5 1 8 1z"/><path d="M12 9c2-3 6-3 8-1-3 0-5 1-8 1z"/><path d="M12 9c-1-3-1-5 1-6"/></svg>`,
+  flame: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 2.5c.3 2.7-.9 4.4-2.3 6C8.8 10 7 11.9 7 15a5 5 0 0 0 10 0c0-1.7-.6-3.1-1.5-4.3-.2 1.3-.9 2.3-2 2.8.4-2.9-.2-6.3-.9-11z"/></svg>`,
+  pause: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>`,
+  clock: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>`
+};
 const TABS = ["casa", "programma", "statistiche", "impostazioni"];
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -718,10 +732,10 @@ function renderHome() {
   const T = s.temperature || {}; const temp = T.alto ?? T.media ?? T.centro;
   $("showers").innerHTML = `${docce(n)}<span>pronte adesso${temp != null ? ` · <b class="temp">${fmtN(temp, 0)}&nbsp;°C</b>` : ""}</span>`;
   const heating = (s.potenza_w || 0) > 50;
-  $("state").innerHTML = s.disponibile === false ? "<b>Non raggiungibile</b>: lo scaldabagno non risponde."
-    : s.boost ? "<b>Boost acceso</b>: sta scaldando al massimo."
-    : heating ? "<b>Sta scaldando</b> da solo."
-    : s.assenza ? "<b>In assenza</b>: non scalda." : "<b>A riposo</b>.";
+  $("state").innerHTML = s.disponibile === false ? ICON.info + "<b>Non raggiungibile</b>: lo scaldabagno non risponde."
+    : s.boost ? ICON.flame + "<b>Boost acceso</b>: sta scaldando al massimo."
+    : heating ? ICON.flame + "<b>Sta scaldando</b> da solo."
+    : s.assenza ? ICON.vac + "<b>In assenza</b>: non scalda." : ICON.pause + "<b>A riposo</b>.";
   drawTank(s.percentuale, heating || s.boost);
   $("boostLabel").textContent = s.boost ? "Boost già acceso" : "Accendi il Boost";
   $("btnBoost").disabled = !!s.boost || S.busy;
@@ -758,7 +772,7 @@ function renderNowCard() {
   else line = `Tiene almeno ${ilPct(cur.soglia)} di acqua calda (≈ ${docce(showersAt(cur.soglia))}).`;
   const wide = window.matchMedia("(min-width: 900px)").matches;
   const todayList = wide ? `<div class="today" style="margin-top:6px">${list.map((f) => `<div class="row1${f.da === curDa ? " cur" : ""}"><span class="mono">${f.da}–${f.a}</span><span>${esc(f.nota || "Fascia")} · ${f.soglia == null ? "niente" : "min " + fmtN(f.soglia) + "%"}</span></div>`).join("")}</div>` : "";
-  box.innerHTML = `<p class="eyebrow">Adesso · fino alle ${cur.a}</p>
+  box.innerHTML = `<p class="eyebrow">${ICON.clock}Adesso · fino alle ${cur.a}</p>
     <p class="big">${esc(cur.nota || "Fascia " + cur.da)}</p>
     <p>${line}</p>
     <p class="muted small">Poi: ${esc(next.nota || "fascia")} dalle ${next.da}${next.soglia == null ? "" : ", almeno " + fmtN(next.soglia) + "%"}.</p>
@@ -777,7 +791,7 @@ function renderProgram() {
   if (!S.season) S.season = live;
   document.querySelectorAll("[data-season]").forEach((b) => {
     b.setAttribute("aria-pressed", String(b.dataset.season === S.season));
-    b.innerHTML = (b.dataset.season === "inverno" ? "Inverno" : "Estate") + (b.dataset.season === live ? '<span class="inuse">• in uso</span>' : "");
+    b.innerHTML = (b.dataset.season === "inverno" ? ICON.snow + "Inverno" : ICON.sun + "Estate") + (b.dataset.season === live ? '<span class="inuse">• in uso</span>' : "");
   });
   const list = withEnds(d[S.season]); const m = romeMinutes(new Date());
   const cur = S.season === live ? currentSlot(list, m) : null;
