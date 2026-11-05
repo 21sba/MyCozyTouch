@@ -163,6 +163,13 @@ a { color: var(--ink); }
 .nowcard .nt b { font-size: 1.02rem; font-weight: 700; }
 .nowcard .nt span { font-size: 0.86rem; color: var(--muted); }
 .nowcard .chev { color: var(--muted); font-size: 1.3rem; }
+.today2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.minicard { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow); text-decoration: none; color: var(--ink); min-width: 0; }
+.minicard .mi { width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; flex: none; }
+.minicard .mi .ic { width: 20px; height: 20px; }
+.minicard .mt { display: grid; min-width: 0; }
+.minicard .mt span { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+.minicard .mt b { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; }
 .tile { color: #fff !important; border-radius: 26px; padding: 18px 18px 18px; display: grid; gap: 4px; align-content: space-between; min-height: 132px; text-decoration: none; color: var(--ink); position: relative; overflow: hidden; border: 0; text-align: left; }
 .tile .tl { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; font-weight: 600; }
 .tile .tl .ibub { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.18); display: grid; place-items: center; }
@@ -545,6 +552,7 @@ const MONTHS_S = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set",
 const WEEK = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 const WEEK_L = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
 const ICON = {
+  bolt: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg>`,
   moon: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>`,
   temp: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/></svg>`,
   drop: `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>`,
@@ -740,7 +748,7 @@ function showTab(tab) {
   S.tab = tab;
   TABS.forEach((t) => { $("v-" + t).hidden = t !== tab; });
   document.querySelectorAll("[data-tab]").forEach((a) => { if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
-  if (tab === "statistiche") { renderLevel(); renderCons(); }
+  if (tab === "statistiche") { if (S.pendingStat) { const g = S.pendingStat; S.pendingStat = null; setStat(g); } else { renderLevel(); renderCons(); } }
   if (tab === "casa") renderHomeChart();
   window.scrollTo(0, 0);
 }
@@ -836,7 +844,12 @@ function renderNowCard() {
     : cur.soglia == null ? `Fino alle ${cur.a} · lascia fare allo scaldabagno`
     : `Fino alle ${cur.a} · tiene almeno ${ilPct(cur.soglia)}`;
   const badge = cur.soglia == null || inVac || !cfg.automatico ? `<span class="nb" style="background:var(--sunk);color:var(--muted)">${ICON.moon}</span>` : `<span class="nb" style="background:${slotFill(cur)}">${fmtN(cur.soglia)}%</span>`;
-  box.innerHTML = `<a class="nowcard" href="#programma">${badge}<span class="nt"><span class="eyebrow">Adesso</span><b>${esc(cur.nota || "Fascia")}</b><span>${sub}</span></span><span class="chev" aria-hidden="true">›</span></a>`;
+  const td = ((S.consumi && S.consumi.giornalieri) || []).find((d) => d.data === romeParts(new Date()).ymd);
+  box.innerHTML = `<a class="nowcard" href="#programma">${badge}<span class="nt"><span class="eyebrow">Adesso</span><b>${esc(cur.nota || "Fascia")}</b><span>${sub}</span></span><span class="chev" aria-hidden="true">›</span></a>
+    <div class="today2">
+      <a class="minicard" href="#statistiche" data-go="litri"><span class="mi" style="background:var(--cold-soft);color:var(--blue)">${ICON.drop}</span><span class="mt"><span>Acqua oggi</span><b>${td && td.litri != null ? fmtN(td.litri, 0) + " L" : "–"}</b></span></a>
+      <a class="minicard" href="#statistiche" data-go="kwh"><span class="mi" style="background:var(--hot-soft);color:var(--hot)">${ICON.bolt}</span><span class="mt"><span>Corrente oggi</span><b>${td && td.kwh != null ? fmtN(td.kwh, 1) + " kWh" : "–"}</b></span></a>
+    </div>`;
 }
 function renderHomeChart() {
   const panel = $("homeChartPanel"); const wide = window.matchMedia("(min-width: 900px)").matches;
@@ -1201,6 +1214,7 @@ function setStat(which) {
   renderLevel(); renderCons();
 }
 document.querySelectorAll("[data-stat]").forEach((b) => b.addEventListener("click", () => setStat(b.dataset.stat)));
+$("nowCard").addEventListener("click", (e) => { const a = e.target.closest("[data-go]"); if (a) S.pendingStat = a.dataset.go; });
 document.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => {
   S.range = Number(b.dataset.range); document.querySelectorAll("[data-range]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderLevel();
 }));
