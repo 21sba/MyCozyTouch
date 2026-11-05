@@ -793,13 +793,16 @@ function renderHome() {
   renderNowCard();
 }
 function drawTank(pct, warm) {
-  // capsula pulita: guscio chiaro con ombre morbide, attacchi, acqua sfumata con onde
-  const W = 176, H = 282, x = 20, y = 34, w = 136, h = 216, r = 68;
+  // serbatoio: cilindro con cupole schiacciate sopra e sotto, attacchi in basso che spuntano da dietro
+  const W = 176, H = 282, x = 18, y = 16, w = 140, h = 222;
   const p = pct == null ? 0 : Math.max(0, Math.min(100, pct));
-  const ix = x + 7, iy = y + 7, iw = w - 14, ih = h - 14, ir = r - 7;
-  const level = iy + ih - ih * p / 100;
-  const wave = (amp) => { let d = `M${ix - 120},${level}`; for (let X = ix - 120; X <= ix + iw + 120; X += 56) d += ` q14,${-amp} 28,0 q14,${amp} 28,0`; return d + ` V${iy + ih + 10} H${ix - 120} Z`; };
-  const bubbles = warm && p > 6 ? [0, 1, 2, 3].map((i) => `<circle class="bubble" cx="${ix + 26 + i * 24}" cy="${iy + ih - 14}" r="${2.5 + (i % 2) * 1.5}" fill="#fff" fill-opacity=".7" style="animation-delay:${(i * 0.8).toFixed(1)}s;animation-duration:${(2.8 + (i % 3) * 0.5).toFixed(1)}s"/>`).join("") : "";
+  const shape = (X, Y, Wd, Ht, c) => `M${X},${Y + c} A${Wd / 2},${c} 0 0 1 ${X + Wd},${Y + c} L${X + Wd},${Y + Ht - c} A${Wd / 2},${c} 0 0 1 ${X},${Y + Ht - c} Z`;
+  const outer = shape(x, y, w, h, 30);
+  const ix = x + 7, iy = y + 7, iw = w - 14, ih = h - 14;
+  const inner = shape(ix, iy, iw, ih, 26);
+  const top = iy, bottom = iy + ih; const level = bottom - (bottom - top) * p / 100;
+  const wave = (amp) => { let d = `M${ix - 120},${level}`; for (let X = ix - 120; X <= ix + iw + 120; X += 56) d += ` q14,${-amp} 28,0 q14,${amp} 28,0`; return d + ` V${bottom + 10} H${ix - 120} Z`; };
+  const bubbles = warm && p > 6 ? [0, 1, 2, 3].map((i) => `<circle class="bubble" cx="${ix + 24 + i * 26}" cy="${iy + ih - 18}" r="${2.5 + (i % 2) * 1.5}" fill="#fff" fill-opacity=".7" style="animation-delay:${(i * 0.8).toFixed(1)}s;animation-duration:${(2.8 + (i % 3) * 0.5).toFixed(1)}s"/>`).join("") : "";
   const light = p >= 50;
   $("tank").setAttribute("aria-label", pct == null ? "Serbatoio, dato non disponibile" : `Serbatoio al ${Math.round(p)}%`);
   $("tank").innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">
@@ -807,19 +810,18 @@ function drawTank(pct, warm) {
       <linearGradient id="gShell" x1="0" x2="1"><stop offset="0" stop-color="#e4e3ec"/><stop offset=".3" stop-color="#ffffff"/><stop offset=".72" stop-color="#ffffff"/><stop offset="1" stop-color="#dcdbe6"/></linearGradient>
       <linearGradient id="gWater" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--water-top)"/><stop offset="1" stop-color="var(--water-deep)"/></linearGradient>
       <linearGradient id="gSide" x1="0" x2="1"><stop offset="0" stop-color="#2a1630" stop-opacity=".12"/><stop offset=".22" stop-color="#2a1630" stop-opacity="0"/><stop offset=".78" stop-color="#2a1630" stop-opacity="0"/><stop offset="1" stop-color="#2a1630" stop-opacity=".16"/></linearGradient>
-      <linearGradient id="gPipe" x1="0" x2="1"><stop offset="0" stop-color="#cfcdd9"/><stop offset=".5" stop-color="#f4f3f8"/><stop offset="1" stop-color="#c3c1cf"/></linearGradient>
-      <radialGradient id="gFloor"><stop offset="0" stop-color="#ff6542" stop-opacity=".28"/><stop offset="1" stop-color="#ff6542" stop-opacity="0"/></radialGradient>
-      <clipPath id="tIn"><rect x="${ix}" y="${iy}" width="${iw}" height="${ih}" rx="${ir}"/></clipPath>
+      <radialGradient id="gFloor"><stop offset="0" stop-color="#ff6542" stop-opacity=".24"/><stop offset="1" stop-color="#ff6542" stop-opacity="0"/></radialGradient>
+      <clipPath id="tIn"><path d="${inner}"/></clipPath>
     </defs>
-    <ellipse cx="${x + w / 2}" cy="${y + h + 10}" rx="${w * 0.5}" ry="11" fill="url(#gFloor)"/>
-    <rect x="${x + 34}" y="${y - 16}" width="16" height="24" rx="5" fill="var(--blue)"/>
-    <rect x="${x + w - 50}" y="${y - 16}" width="16" height="24" rx="5" fill="var(--red)"/>
-    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#gShell)" stroke="#d9d7e3" stroke-width="1.5"/>
+    <ellipse cx="${x + w / 2}" cy="${y + h + 32}" rx="${w * 0.5}" ry="10" fill="url(#gFloor)"/>
+    <rect x="${x + 38}" y="${y + h - 30}" width="15" height="58" rx="5" fill="var(--blue)"/>
+    <rect x="${x + w - 53}" y="${y + h - 30}" width="15" height="58" rx="5" fill="var(--red)"/>
+    <path d="${outer}" fill="url(#gShell)" stroke="#d9d7e3" stroke-width="1.5"/>
     <g clip-path="url(#tIn)">
-      <rect x="${ix}" y="${iy}" width="${iw}" height="${ih}" fill="var(--empty)"/>
+      <rect x="${ix}" y="${iy - 20}" width="${iw}" height="${ih + 40}" fill="var(--empty)"/>
       ${pct == null ? "" : `<path class="wave-b" d="${wave(5)}" fill="var(--water-top)" opacity=".45"/><path class="wave-a" d="${wave(4)}" fill="url(#gWater)"/>`}
       ${bubbles}
-      <rect x="${ix}" y="${iy}" width="${iw}" height="${ih}" fill="url(#gSide)"/>
+      <rect x="${ix}" y="${iy - 20}" width="${iw}" height="${ih + 40}" fill="url(#gSide)"/>
     </g>
     ${pct == null ? "" : `<text x="${x + w / 2}" y="${iy + ih / 2 + 15}" text-anchor="middle" font-family="var(--display)" font-weight="800" font-size="44" fill="${light ? "#fff" : "var(--ink)"}" style="letter-spacing:-0.045em">${Math.round(p)}<tspan font-size="22" font-weight="700" dx="2">%</tspan></text>`}
   </svg>`;
