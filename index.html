@@ -158,6 +158,12 @@ a { color: var(--cold); }
 .today .row1:not(.cur) { color: var(--muted); }
 .today .row1 .mono { font-size: 0.85rem; }
 
+@media (max-width: 899px) {
+  #btnBoost { position: fixed; z-index: 18; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 12px);
+    left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: auto;
+    box-shadow: 0 6px 20px rgba(0,0,0,.22); }
+  #v-casa { padding-bottom: 76px; }
+}
 @media (min-width: 900px) {
   .home { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; gap: 22px; }
   .home .status-col { display: grid; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; }
@@ -346,7 +352,7 @@ input[type="text"] { width: 100%; }
               </div>
             </div>
             <p class="banner" id="vacBanner" hidden></p>
-            <button class="btn primary block" id="btnBoost" type="button">Accendi il Boost</button>
+            <button class="btn primary block" id="btnBoost" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12.6 2.3c.3 2.7-.9 4.4-2.3 6C8.8 10 7 11.9 7 15a5 5 0 0 0 10 0c0-1.7-.6-3.1-1.5-4.3-.2 1.3-.9 2.3-2 2.8.4-2.9-.2-6.3-.9-11.2z"/></svg><span id="boostLabel">Accendi il Boost</span></button>
             <p class="status" id="actStatus" role="status" aria-live="polite"></p>
           </div>
           <div class="card now-card" id="nowCard"></div>
@@ -717,7 +723,7 @@ function renderHome() {
     : heating ? "<b>Sta scaldando</b> da solo."
     : s.assenza ? "<b>In assenza</b>: non scalda." : "<b>A riposo</b>.";
   drawTank(s.percentuale, heating || s.boost);
-  $("btnBoost").textContent = s.boost ? "Boost già acceso" : "Accendi il Boost";
+  $("boostLabel").textContent = s.boost ? "Boost già acceso" : "Accendi il Boost";
   $("btnBoost").disabled = !!s.boost || S.busy;
   const v = activeVacation(); const b = $("vacBanner");
   if (v) { b.hidden = false; b.textContent = localToDate(v.dal) <= new Date() ? `In vacanza fino a ${fmtDate(localToDate(v.al))} alle ${fmtTime(localToDate(v.al))}.` : `Vacanza programmata ${vacWhen(v)}.`; }
@@ -1303,7 +1309,7 @@ function renderAll() { renderHome(); renderProgram(); renderSettings(); if (S.ta
 async function runCommand(modalita) {
   if (S.busy) return; S.busy = true;
   const b = $("btnBoost"); b.disabled = true; $("btnRefresh").classList.add("spin");
-  if (modalita === "boost") b.textContent = "Accendo…";
+  if (modalita === "boost") $("boostLabel").textContent = "Accendo…";
   setStatus("actStatus", modalita === "boost" ? "Invio la richiesta…" : "");
   try {
     const run = await dispatch(modalita, {}, (t) => { if (modalita === "boost") setStatus("actStatus", t); });
