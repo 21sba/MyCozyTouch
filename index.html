@@ -307,7 +307,7 @@ input[type="text"] { width: 100%; }
 .tip b { font-weight: 700; }
 .empty { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 0.95rem; }
 .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.kpi { padding: 14px; display: grid; gap: 4px; border-radius: 22px; box-shadow: none; }
+.kpi { padding: 14px; display: grid; grid-template-rows: 1fr auto; align-content: space-between; gap: 4px; border-radius: 22px; box-shadow: none; }
 .kpis .kpi { background: var(--surface); box-shadow: var(--shadow); }
 .kpi .k { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
 .kpi .v { font-family: var(--display); font-weight: 800; font-size: 1.35rem; letter-spacing: -0.02em; }
@@ -1208,10 +1208,10 @@ function renderCons() {
   const thisMonth = months.find((m) => m.data.slice(0, 7) === todayYmd.slice(0, 7));
   if (isL) {
     $("kpis").innerHTML = `
-      <div class="card kpi"><span class="k">Oggi</span><span class="v">${(() => { const t = all.find((d) => d.data === todayYmd); return t && t.litri != null ? fmtN(t.litri, 0) + " L" : "–"; })()}</span></div>
-      <div class="card kpi"><span class="k">Media</span><span class="v">${fmtN(a30, 0)} L</span></div>
-      <div class="card kpi"><span class="k">A persona</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + " L"}</span></div>`;
-    $("consNote").textContent = `Litri di acqua calda (a 40 °C) usati in casa: docce, rubinetti, lavandini ed eventuali elettrodomestici collegati all'acqua calda. Media degli ultimi 30 giorni, ${persone} persone.`;
+      <div class="card kpi"><span class="k">Oggi, finora</span><span class="v">${(() => { const t = all.find((d) => d.data === todayYmd); return t && t.litri != null ? fmtN(t.litri, 0) + " L" : "–"; })()}</span></div>
+      <div class="card kpi"><span class="k">Media al giorno</span><span class="v">${fmtN(a30, 0)} L</span></div>
+      <div class="card kpi"><span class="k">A persona al giorno</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + " L"}</span></div>`;
+    $("consNote").textContent = `Litri di acqua calda (a 40 °C) usati in casa: docce, rubinetti, lavandini ed eventuali elettrodomestici collegati all'acqua calda. «Media» e «A persona» sono calcolate sugli ultimi 30 giorni, per ${persone} persone.`;
   } else {
     const both = last30.filter((d) => d.kwh != null && d.litri);
     const per100 = both.length ? both.reduce((a, d) => a + d.kwh, 0) / both.reduce((a, d) => a + d.litri, 0) * 100 : null;
