@@ -404,17 +404,18 @@ input[type="text"] { width: 100%; }
 
       <!-- ================= STATISTICHE ================= -->
       <section class="view" id="v-statistiche" aria-labelledby="h-stat" hidden>
-        <div class="viewhead">
+        <div class="viewhead" style="flex-direction:column;align-items:flex-start">
           <h1 id="h-stat">Statistiche</h1>
           <div class="seg" role="group" aria-label="Cosa vedere">
-            <button type="button" data-stat="livello" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>Acqua calda</button>
-            <button type="button" data-stat="consumi" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg>Consumi</button>
+            <button type="button" data-stat="livello" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="5"/><path d="M7 13h10"/></svg>Serbatoio</button>
+            <button type="button" data-stat="litri" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>Acqua usata</button>
+            <button type="button" data-stat="kwh" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg>Corrente</button>
           </div>
         </div>
 
         <div id="statLevel" class="view">
           <div class="controls">
-            <p class="muted small">Quanta acqua calda c'era nel serbatoio</p>
+            <span></span>
             <div class="seg" role="group" aria-label="Periodo">
               <button type="button" data-range="1" aria-pressed="true">24 ore</button>
               <button type="button" data-range="3" aria-pressed="false">3 giorni</button>
@@ -437,10 +438,6 @@ input[type="text"] { width: 100%; }
 
         <div id="statCons" class="view" hidden>
           <div class="controls">
-            <div class="seg" role="group" aria-label="Misura">
-              <button type="button" data-cons="litri" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>Acqua</button>
-              <button type="button" data-cons="kwh" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg>Corrente</button>
-            </div>
             <div class="seg" role="group" aria-label="Raggruppa per">
               <button type="button" data-view="giorni" aria-pressed="true">30 giorni</button>
               <button type="button" data-view="settimana" aria-pressed="false">Settimana</button>
@@ -1039,7 +1036,7 @@ function barChart(box, items, color, tipFn, highlightLast) {
     g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/>`;
     g += `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" font-family="var(--mono)" fill="var(--muted)">${fmtN(v, v < 10 && v % 1 ? 1 : 0)}</text>`;
   });
-  const every = Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor((W - L - R) / 34))));
+  const every = Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor((W - L - R) / (items.length > 12 ? 52 : 34)))));
   let bars = "";
   items.forEach((d, i) => {
     const v = d.v || 0; const gap = Math.min(4, bw * 0.25); const x = L + i * bw + gap / 2; const w = Math.max(2, bw - gap);
@@ -1054,7 +1051,7 @@ function barChart(box, items, color, tipFn, highlightLast) {
   }, "cs");
 }
 function renderCons() {
-  if (S.tab !== "statistiche" || S.stat !== "consumi") return;
+  if (S.tab !== "statistiche" || S.stat === "livello") return;
   const pr = price(); const key = S.cons; const isL = key === "litri";
   const all = (S.consumi && S.consumi.giornalieri) || [];
   const todayYmd = romeParts(new Date()).ymd;
@@ -1107,15 +1104,13 @@ function renderCons() {
 }
 function setStat(which) {
   S.stat = which; document.querySelectorAll("[data-stat]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.stat === which)));
-  $("statLevel").hidden = which !== "livello"; $("statCons").hidden = which !== "consumi";
+  if (which !== "livello") S.cons = which;
+  $("statLevel").hidden = which !== "livello"; $("statCons").hidden = which === "livello";
   renderLevel(); renderCons();
 }
 document.querySelectorAll("[data-stat]").forEach((b) => b.addEventListener("click", () => setStat(b.dataset.stat)));
 document.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => {
   S.range = Number(b.dataset.range); document.querySelectorAll("[data-range]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderLevel();
-}));
-document.querySelectorAll("[data-cons]").forEach((b) => b.addEventListener("click", () => {
-  S.cons = b.dataset.cons; document.querySelectorAll("[data-cons]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderCons();
 }));
 document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
   S.view = b.dataset.view; document.querySelectorAll("[data-view]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderCons();
