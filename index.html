@@ -81,7 +81,8 @@ a { color: var(--ink); }
 }
 .view { display: grid; gap: 20px; }
 .viewhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; flex-wrap: wrap; }
-.fresh { white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--ink); border: 0; background: var(--surface); padding: 8px 14px; border-radius: 999px; box-shadow: var(--shadow); font-weight: 500; }
+#v-casa .viewhead { flex-wrap: nowrap; }
+.fresh { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--muted); border: 0; background: var(--surface); padding: 8px 12px; border-radius: 999px; box-shadow: var(--shadow); font-weight: 600; flex: none; }
 .fresh svg { width: 16px; height: 16px; }
 .fresh.spin svg { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -152,7 +153,16 @@ a { color: var(--ink); }
 .verdict.good .dot { background: #5aa24f; } .verdict.warn .dot { background: #e2a227; } .verdict.bad .dot { background: var(--bad); }
 .showers { font-family: var(--display); font-weight: 800; font-size: 3.4rem; line-height: 1; letter-spacing: -0.045em; margin-top: 10px; }
 .showers span { font-size: 1.1rem; font-weight: 500; letter-spacing: 0; color: var(--muted); display: block; margin-top: 4px; }
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tiles { display: grid; gap: 12px; }
+.statusline { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.95rem; color: var(--ink); margin-top: 10px; }
+.statusline .ic { width: 18px; height: 18px; }
+.statusline.hot { color: var(--hot); }
+.nowcard { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 16px 18px; border-radius: 24px; background: var(--surface); box-shadow: var(--shadow); text-decoration: none; color: var(--ink); }
+.nowcard .nb { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 0.95rem; }
+.nowcard .nt { display: grid; gap: 2px; min-width: 0; }
+.nowcard .nt b { font-size: 1.02rem; font-weight: 700; }
+.nowcard .nt span { font-size: 0.86rem; color: var(--muted); }
+.nowcard .chev { color: var(--muted); font-size: 1.3rem; }
 .tile { color: #fff !important; border-radius: 26px; padding: 18px 18px 18px; display: grid; gap: 4px; align-content: space-between; min-height: 132px; text-decoration: none; color: var(--ink); position: relative; overflow: hidden; border: 0; text-align: left; }
 .tile .tl { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; font-weight: 600; }
 .tile .tl .ibub { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.18); display: grid; place-items: center; }
@@ -187,8 +197,7 @@ a { color: var(--ink); }
   .home { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; gap: 22px; }
   .home .status-col { background: var(--surface); border-radius: 36px; box-shadow: var(--shadow); padding: 28px; display: grid; gap: 16px; align-content: start; overflow: hidden; }
   .home .wide { grid-column: 1 / -1; }
-  .tiles { align-content: stretch; }
-  .tile { min-height: 0; }
+  .tiles { align-content: start; }
   #btnBoost { display: inline-flex; }
 }
 
@@ -231,15 +240,16 @@ a { color: var(--ink); }
 .savebar .btn.primary { background: var(--hot); color: #fff; }
 .savebar .btn.quiet { color: var(--bg); }
 @media (min-width: 900px) { .savebar { bottom: 18px; } }
-.hint { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 18px 20px; background: var(--blue); color: #fff; box-shadow: 0 16px 28px -14px rgba(79,91,213,.75); }
-.hint .muted { color: rgba(255,255,255,.8); }
-.hint .btn { color: var(--ink); }
+.hint { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 18px; }
+.hint .ic { color: var(--hot); }
 .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; }
+.toggle .autodot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; background: var(--good); vertical-align: 1px; }
+.toggle.off .autodot { background: var(--muted); }
 .switch { position: relative; width: 54px; height: 32px; flex: none; }
 .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
 .switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--track); transition: background .2s; pointer-events: none; }
 .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.18); transition: transform .2s; }
-.switch input:checked + span { background: var(--blue); }
+.switch input:checked + span { background: var(--good); }
 .switch input:checked + span::after { transform: translateX(22px); }
 .switch input:focus-visible + span { outline: 3px solid var(--peri); outline-offset: 2px; }
 
@@ -291,8 +301,8 @@ input[type="text"] { width: 100%; }
 .empty { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 0.95rem; }
 .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .kpi { padding: 14px; display: grid; gap: 4px; border-radius: 22px; box-shadow: none; }
-.kpis .kpi { color: #fff; } .kpis .kpi:nth-child(1) { background: var(--blue); } .kpis .kpi:nth-child(2) { background: var(--red); } .kpis .kpi:nth-child(3) { background: var(--plum); }
-.kpi .k { font-size: 0.78rem; font-weight: 600; opacity: .85; }
+.kpis .kpi { background: var(--surface); box-shadow: var(--shadow); }
+.kpi .k { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
 .kpi .v { font-family: var(--display); font-weight: 800; font-size: 1.35rem; letter-spacing: -0.02em; }
 .note { font-size: 0.9rem; color: var(--muted); }
 .controls { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
@@ -384,8 +394,8 @@ input[type="text"] { width: 100%; }
               <span class="blob b1" aria-hidden="true"></span><span class="blob b2" aria-hidden="true"></span><span class="blob b3" aria-hidden="true"></span>
               <div class="tank" id="tank" role="img" aria-label="Serbatoio"></div>
               <div class="answer">
-                <p class="verdict" id="verdict"><span class="dot"></span><span id="verdictText">–</span></p>
-                <p class="showers" id="showers">–</p>
+                                <p class="showers" id="showers">–</p>
+                <p class="statusline" id="statusLine"></p>
               </div>
             </div>
             <p class="banner" id="vacBanner" hidden></p>
@@ -409,22 +419,21 @@ input[type="text"] { width: 100%; }
             <button type="button" data-season="estate" aria-pressed="false">Estate</button>
           </div>
         </div>
-        <div id="sugHint"></div>
+        <div class="card toggle" id="autoCard">
+          <div>
+            <p style="font-weight:700"><span class="autodot"></span><span id="autoTitle">Automatico attivo</span></p>
+            <p class="muted small" id="autoSub">Ogni 30 minuti controlla l'acqua calda e accende il Boost se è sotto il minimo della fascia.</p>
+          </div>
+          <label class="switch"><input type="checkbox" id="autoSwitch" aria-label="Programma automatico"><span></span></label>
+        </div>
         <div>
           <div class="dayline" id="dayline" aria-hidden="true"></div>
           <div class="dayscale"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
         </div>
         <div class="periods" id="periods"></div>
         <button class="btn sm quiet" type="button" id="btnAdd" style="justify-self:start">+ Aggiungi una fascia</button>
-        <p class="muted small">Ogni 30 minuti lo script controlla l'acqua calda: se è sotto il minimo della fascia in corso, accende il Boost. Lo scaldabagno lo spegne da solo quando ha finito.</p>
+        <div id="sugHint"></div>
         <p class="status" id="progStatus" role="status" aria-live="polite"></p>
-        <div class="card toggle">
-          <div>
-            <p style="font-weight:600">Programma attivo</p>
-            <p class="muted small">Se lo spegni, lo script non accende più il Boost da solo.</p>
-          </div>
-          <label class="switch"><input type="checkbox" id="autoSwitch" aria-label="Programma attivo"><span></span></label>
-        </div>
         <div class="savebar" id="savebar" hidden>
           <span class="small">Modifiche non salvate</span>
           <span style="display:flex; gap:6px">
@@ -490,21 +499,21 @@ input[type="text"] { width: 100%; }
         <div class="group">
           <p class="eyebrow">Scaldabagno</p>
           <div class="card settings">
-            <button class="srow" type="button" data-sheet="vacanza"><span><span class="ibox" style="background:var(--blue);color:#fff"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M12 21V9"/><path d="M12 9c-2-3-6-3-8-1 3 0 5 1 8 1z"/><path d="M12 9c2-3 6-3 8-1-3 0-5 1-8 1z"/><path d="M12 9c-1-3-1-5 1-6"/></svg></span>Vacanza</span><span class="val" id="sumVac"></span></button>
-            <button class="srow" type="button" data-sheet="temperatura"><span><span class="ibox" style="background:var(--red);color:#fff"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 11v6"/></svg></span>Temperatura dell'acqua</span><span class="val" id="sumTemp"></span></button>
-            <button class="srow" type="button" data-sheet="stagioni"><span><span class="ibox" style="background:var(--plum);color:#fff"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.8 3.8l1 1M11.2 11.2l1 1M3.8 12.2l1-1M11.2 4.8l1-1"/><path d="M17 12v10M13 17h8M14.2 14.2l5.6 5.6M19.8 14.2l-5.6 5.6"/></svg></span>Estate e inverno</span><span class="val" id="sumSeason"></span></button>
+            <button class="srow" type="button" data-sheet="vacanza"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M12 21V9"/><path d="M12 9c-2-3-6-3-8-1 3 0 5 1 8 1z"/><path d="M12 9c2-3 6-3 8-1-3 0-5 1-8 1z"/><path d="M12 9c-1-3-1-5 1-6"/></svg></span>Vacanza</span><span class="val" id="sumVac"></span></button>
+            <button class="srow" type="button" data-sheet="temperatura"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 11v6"/></svg></span>Temperatura dell'acqua</span><span class="val" id="sumTemp"></span></button>
+            <button class="srow" type="button" data-sheet="stagioni"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.8 3.8l1 1M11.2 11.2l1 1M3.8 12.2l1-1M11.2 4.8l1-1"/><path d="M17 12v10M13 17h8M14.2 14.2l5.6 5.6M19.8 14.2l-5.6 5.6"/></svg></span>Estate e inverno</span><span class="val" id="sumSeason"></span></button>
           </div>
         </div>
         <div class="group">
           <p class="eyebrow">Extra</p>
           <div class="card settings">
-            <button class="srow" type="button" data-sheet="notifiche"><span><span class="ibox" style="background:var(--lilac);color:#fff"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21h4"/></svg></span>Notifiche sul telefono</span><span class="val" id="sumNotif"></span></button>
-            <button class="srow" type="button" data-sheet="sole"><span><span class="ibox" style="background:var(--yellow);color:#fff"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>Pannelli solari</span><span class="val" id="sumSun"></span></button>
-            <button class="srow" type="button" data-sheet="prezzo"><span><span class="ibox" style="background:var(--ink);color:#fff"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6.5A7 7 0 1 0 18 17.5"/><path d="M4 10h10M4 14h10"/></svg></span>Prezzo della corrente</span><span class="val" id="sumPrice"></span></button>
+            <button class="srow" type="button" data-sheet="notifiche"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21h4"/></svg></span>Notifiche sul telefono</span><span class="val" id="sumNotif"></span></button>
+            <button class="srow" type="button" data-sheet="sole"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>Pannelli solari</span><span class="val" id="sumSun"></span></button>
+            <button class="srow" type="button" data-sheet="prezzo"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6.5A7 7 0 1 0 18 17.5"/><path d="M4 10h10M4 14h10"/></svg></span>Prezzo della corrente</span><span class="val" id="sumPrice"></span></button>
           </div>
         </div>
         <div class="group">
-          <p class="eyebrow">Altro</p>
+          <p class="eyebrow">Avanzate</p>
           <div class="card settings">
             <button class="srow" type="button" data-sheet="dettagli"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></span>Dettagli tecnici</span><span class="val"></span></button>
             <a class="srow noarrow" id="lnkActions" href="#" target="_blank" rel="noopener"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5H5V6h5"/></svg></span>Esecuzioni su GitHub</span><span class="val">↗</span></a>
@@ -666,6 +675,11 @@ const fmtDate = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: TZ, weekday:
 const fmtShort = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: TZ, day: "numeric", month: "short" }).format(d);
 const fmtDayMonth = (d) => new Intl.DateTimeFormat("it-IT", { timeZone: "UTC", day: "numeric", month: "short" }).format(d);
 const fmtN = (v, d = 0) => v == null || isNaN(v) ? "–" : Number(v).toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
+function agoShort(d) {
+  const m = Math.round((Date.now() - d.getTime()) / 60000);
+  if (m < 1) return "ora"; if (m < 60) return `${m}m fa`;
+  const h = Math.floor(m / 60); if (h < 24) return `${h}h fa`; return `${Math.floor(h / 24)}g fa`;
+}
 function ago(d) {
   const m = Math.round((Date.now() - d.getTime()) / 60000);
   if (m < 1) return "adesso"; if (m < 60) return `${m} min fa`;
@@ -714,7 +728,7 @@ function withEnds(list) { const l = sortedSlots(list); return l.map((f, i) => ({
 function currentSlot(list, m) { const l = sortedSlots(list); if (!l.length) return null; let cur = l[l.length - 1]; l.forEach((f) => { if (toMin(f.da) <= m) cur = f; }); return cur; }
 const sigList = (l) => JSON.stringify(sortedSlots(l).map(({ da, soglia, nota, sole }) => [da, soglia ?? null, (nota || "").trim(), !!sole]));
 const isDirty = () => !!S.draft && (sigList(S.draft.inverno) !== sigList(S.config.programmi.inverno) || sigList(S.draft.estate) !== sigList(S.config.programmi.estate));
-const slotFill = (f) => f.soglia == null ? "var(--sunk)" : f.soglia >= 75 ? "var(--red)" : f.soglia >= 45 ? "var(--yellow)" : "var(--blue)";
+const slotFill = (f) => f.soglia == null ? "var(--sunk)" : f.soglia >= 75 ? "#f2552c" : f.soglia >= 45 ? "#ff8a4c" : "#ffb98f";
 const sunActive = () => !!(S.config && S.config.sole && S.config.sole.attivo);
 function activeVacation() { const v = S.config && S.config.vacanza; return v && localToDate(v.al) > new Date() ? v : null; }
 function goalText(f) { return f.soglia == null ? "Non fa niente" : `Tiene almeno ${ilPct(f.soglia)} <span class="muted">≈ ${docce(showersAt(f.soglia))}</span>`; }
@@ -756,13 +770,18 @@ function renderSheet() {
 /* ================= CASA ================= */
 function renderHome() {
   const s = S.stato;
-  if (!s) { $("showers").innerHTML = "–<span>Tocca «Aggiorna» per leggere lo scaldabagno</span>"; $("verdictText").textContent = "Nessun dato ancora"; drawTank(null); renderNowCard(); return; }
-  $("freshText").textContent = `Aggiornato ${ago(new Date(s.ora))}`;
+  if (!s) { $("showers").innerHTML = "–<span>Tocca l'orologio in alto per aggiornare</span>"; $("statusLine").innerHTML = ""; drawTank(null); renderNowCard(); return; }
+  $("freshText").textContent = agoShort(new Date(s.ora));
   const n = s.litri_v40 != null ? Math.floor(s.litri_v40 / SHOWER_L) : showersAt(s.percentuale);
-  const [cls, txt] = n >= 6 ? ["good", "Acqua calda in abbondanza"] : n >= 3 ? ["good", "Acqua calda sufficiente"] : n >= 1 ? ["warn", "Acqua calda quasi finita"] : ["bad", "Acqua calda finita"];
-  $("verdict").className = "verdict " + cls; $("verdictText").textContent = txt;
-  $("showers").innerHTML = `${docce(n)}<span>pronte adesso</span>`;
+  const T = s.temperature || {}; const temp = T.alto ?? T.media ?? T.centro;
+  $("showers").innerHTML = `${docce(n)}<span>pronte adesso${temp != null ? ` · ${fmtN(temp, 0)}°` : ""}</span>`;
   const heating = (s.potenza_w || 0) > 50;
+  const sl = $("statusLine");
+  if (s.disponibile === false) { sl.className = "statusline"; sl.innerHTML = ICON.info + "Lo scaldabagno non risponde"; }
+  else if (s.boost) { sl.className = "statusline hot"; sl.innerHTML = ICON.flame + "Boost acceso"; }
+  else if (heating) { sl.className = "statusline hot"; sl.innerHTML = ICON.flame + "Sta scaldando"; }
+  else if (s.assenza) { sl.className = "statusline"; sl.innerHTML = ICON.vac + "In assenza"; }
+  else { sl.className = "statusline"; sl.innerHTML = ICON.pause + "A riposo"; }
   drawTank(s.percentuale, heating || s.boost);
   const label = s.boost ? "Boost già acceso" : "Accendi il Boost";
   $("boostLabel").textContent = label; $("fabBoost").setAttribute("aria-label", label);
@@ -807,30 +826,15 @@ function drawTank(pct, warm) {
 }
 function renderNowCard() {
   const cfg = S.config; const box = $("nowCard"); if (!cfg) return;
-  const s = S.stato || {};
   const season = seasonOf(cfg.stagioni, new Date()); const list = withEnds(cfg.programmi[season]);
-  const m = romeMinutes(new Date()); const curDa = currentSlot(list, m).da;
-  const cur = list.find((f) => f.da === curDa);
+  const cur = list.find((f) => f.da === currentSlot(list, romeMinutes(new Date())).da);
   const v = cfg.vacanza; const inVac = v && localToDate(v.dal) <= new Date() && new Date() < localToDate(v.al);
-  const T = s.temperature || {}; const temp = T.alto ?? T.media ?? T.centro;
-  const heating = (s.potenza_w || 0) > 50;
-  const today = romeParts(new Date()).ymd;
-  const days = (S.consumi && S.consumi.giornalieri) || [];
-  const td = days.find((d) => d.data === today);
-  const goal = inVac ? "In vacanza" : !cfg.automatico ? "Programma in pausa" : cur.soglia == null ? "Non tocca nulla" : `Almeno ${fmtN(cur.soglia)}%`;
-  const [stIcon, stText, stSub] = s.disponibile === false ? [ICON.info, "Offline", "non risponde"]
-    : s.boost ? [ICON.flame, "Boost", "scalda al massimo"]
-    : heating ? [ICON.flame, "Scalda", `${fmtN((s.potenza_w || 0) / 1000, 1)} kW`]
-    : s.assenza ? [ICON.vac, "Assenza", "non scalda"] : [ICON.pause, "A riposo", "acqua pronta"];
-  box.innerHTML = `
-    <div class="tile t-pink"><svg class="deco" style="right:-8px;top:8px" width="104" height="52" viewBox="0 0 150 90" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M0 50 h28 l12 -30 l14 52 l12 -38 l10 16 h74" opacity=".9"/><path d="M0 66 h34 l10 -18 l12 30 l10 -22 l8 10 h76" opacity=".45"/></svg><div class="tl"><span>Temperatura</span><span class="ibub">${ICON.temp}</span></div>
-      <div><p class="tv">${temp != null ? fmtN(temp, 0) + "°" : "–"}</p><p class="ts">esce dal rubinetto</p></div></div>
-    <a class="tile t-butter" href="#programma"><svg class="deco" style="right:-26px;top:-24px" width="86" height="86" viewBox="0 0 120 120" fill="none" stroke="#fff" stroke-width="2.5" aria-hidden="true"><rect x="12" y="40" width="54" height="54" rx="10" opacity=".9"/><rect x="34" y="22" width="54" height="54" rx="10" opacity=".6"/><rect x="56" y="4" width="54" height="54" rx="10" opacity=".35"/></svg><div class="tl"><span>Adesso</span><span class="ibub">${ICON.clock}</span></div>
-      <div><p class="tv sm">${esc(cur.nota || "Fascia")}</p><p class="ts">${goal} · fino alle ${cur.a}</p></div></a>
-    <a class="tile t-peri" href="#statistiche"><svg class="deco" style="right:-50px;top:-50px" width="130" height="130" viewBox="0 0 150 150" fill="none" stroke="#fff" stroke-width="2.5" aria-hidden="true"><circle cx="75" cy="75" r="22" opacity=".9"/><circle cx="75" cy="75" r="44" opacity=".55"/><circle cx="75" cy="75" r="66" opacity=".3"/></svg><div class="tl"><span>Usata oggi</span><span class="ibub">${ICON.drop}</span></div>
-      <div><p class="tv">${td && td.litri != null ? fmtN(td.litri, 0) + " L" : "–"}</p><p class="ts">acqua calda a 40 °C</p></div></a>
-    <div class="tile t-sage"><svg class="deco" style="right:-40px;top:-22px" width="110" height="74" viewBox="0 0 150 100" fill="none" stroke="#fff" stroke-width="2.5" aria-hidden="true"><circle cx="50" cy="50" r="36" opacity=".9"/><circle cx="78" cy="50" r="36" opacity=".55"/><circle cx="106" cy="50" r="36" opacity=".3"/></svg><div class="tl"><span>Scaldabagno</span><span class="ibub">${stIcon}</span></div>
-      <div><p class="tv sm">${stText}</p><p class="ts">${stSub}</p></div></div>`;
+  const sub = inVac ? "In vacanza: lo script è fermo"
+    : !cfg.automatico ? "Automatico in pausa"
+    : cur.soglia == null ? `Fino alle ${cur.a} · lascia fare allo scaldabagno`
+    : `Fino alle ${cur.a} · tiene almeno ${ilPct(cur.soglia)}`;
+  const badge = cur.soglia == null || inVac || !cfg.automatico ? `<span class="nb" style="background:var(--sunk);color:var(--muted)">${ICON.moon}</span>` : `<span class="nb" style="background:${slotFill(cur)}">${fmtN(cur.soglia)}%</span>`;
+  box.innerHTML = `<a class="nowcard" href="#programma">${badge}<span class="nt"><span class="eyebrow">Adesso</span><b>${esc(cur.nota || "Fascia")}</b><span>${sub}</span></span><span class="chev" aria-hidden="true">›</span></a>`;
 }
 function renderHomeChart() {
   const panel = $("homeChartPanel"); const wide = window.matchMedia("(min-width: 900px)").matches;
@@ -871,12 +875,15 @@ function renderProgram() {
       </button>`;
   }).join("");
   $("savebar").hidden = !isDirty();
-  $("autoSwitch").checked = S.config.automatico !== false;
+  const on = S.config.automatico !== false;
+  $("autoSwitch").checked = on; $("autoCard").classList.toggle("off", !on);
+  $("autoTitle").textContent = on ? "Automatico attivo" : "Automatico in pausa";
+  $("autoSub").textContent = on ? "Ogni 30 minuti controlla l'acqua calda e accende il Boost se è sotto il minimo della fascia." : "Lo script non accende il Boost da solo. Riattivalo quando vuoi.";
   renderSugHint();
 }
 function renderSugHint() {
   const a = analyzeUsage(); const box = $("sugHint");
-  if (a.days >= 7) box.innerHTML = `<div class="card hint"><div><p style="font-weight:600">Ho un programma su misura per voi</p><p class="muted small">Basato su come avete usato l'acqua calda negli ultimi giorni.</p></div><button class="btn sm" type="button" id="btnSug">Vedi</button></div>`;
+  if (a.days >= 7) box.innerHTML = `<div class="card hint"><div><p style="font-weight:600">Programma su misura</p><p class="muted small">Calcolato su come avete usato l'acqua calda.</p></div><button class="btn sm" type="button" id="btnSug">Vedi</button></div>`;
   else box.innerHTML = "";
   const b = $("btnSug"); if (b) b.onclick = () => openSheet("consigli");
 }
@@ -970,8 +977,7 @@ $("autoSwitch").addEventListener("change", async (e) => {
   const on = e.target.checked; e.target.disabled = true;
   try {
     await saveConfig((c) => { c.automatico = on; return c; }, on ? "Programma attivato dalla dashboard" : "Programma in pausa dalla dashboard");
-    setStatus("progStatus", on ? "Programma attivo." : "Programma in pausa: lo script registra i dati ma non accende il Boost.", "ok");
-    renderNowCard();
+    renderProgram(); renderNowCard();
   } catch (err) { e.target.checked = !on; setStatus("progStatus", err.message, "err"); }
   finally { e.target.disabled = false; }
 });
@@ -1146,9 +1152,9 @@ function renderCons() {
   const thisMonth = months.find((m) => m.data.slice(0, 7) === todayYmd.slice(0, 7));
   if (isL) {
     $("kpis").innerHTML = `
-      <div class="card kpi"><span class="k">Al giorno</span><span class="v">${fmtN(a30, 0)} L</span></div>
-      <div class="card kpi"><span class="k">A persona</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + " L"}</span></div>
-      <div class="card kpi"><span class="k">Questo mese</span><span class="v">${thisMonth && thisMonth.litri != null ? fmtN(thisMonth.litri, 0) + " L" : "–"}</span></div>`;
+      <div class="card kpi"><span class="k">Oggi</span><span class="v">${(() => { const t = all.find((d) => d.data === todayYmd); return t && t.litri != null ? fmtN(t.litri, 0) + " L" : "–"; })()}</span></div>
+      <div class="card kpi"><span class="k">Media</span><span class="v">${fmtN(a30, 0)} L</span></div>
+      <div class="card kpi"><span class="k">A persona</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + " L"}</span></div>`;
     $("consNote").textContent = `Litri di acqua calda (a 40 °C) usati in casa: docce, rubinetti, lavandini ed eventuali elettrodomestici collegati all'acqua calda. Media degli ultimi 30 giorni, ${persone} persone.`;
   } else {
     const both = last30.filter((d) => d.kwh != null && d.litri);
@@ -1159,7 +1165,7 @@ function renderCons() {
       <div class="card kpi"><span class="k">Ogni 100 L</span><span class="v">${fmtN(per100, 1)} kWh</span></div>`;
     $("consNote").textContent = `Corrente usata dallo scaldabagno. Costo stimato a ${fmtN(pr, 2)} €/kWh (si cambia nelle Impostazioni). «Ogni 100 L» è quanta corrente serve per scaldare l'acqua: in estate la pompa di calore rende di più e il numero scende.`;
   }
-  const color = isL ? "var(--yellow)" : "var(--blue)";
+  const color = isL ? "var(--blue)" : "var(--hot)";
   const unit = (v) => v == null ? "–" : isL ? fmtN(v, 0) + " L" : fmtN(v, 1) + " kWh";
   const cost = (v) => !isL && v != null ? ` · ≈ ${fmtN(v * pr, v * pr < 10 ? 2 : 0)} €` : "";
   const box = $("csChart");
@@ -1437,7 +1443,7 @@ document.addEventListener("visibilitychange", () => {
   loadAll().then(() => { if (!isDirty()) S.draft = null; renderAll(); }).catch(() => {});
 });
 let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderNowCard(); renderHomeChart(); renderLevel(); renderCons(); }, 150); });
-setInterval(() => { if (S.stato && !S.busy) $("freshText").textContent = `Aggiornato ${ago(new Date(S.stato.ora))}`; }, 60000);
+setInterval(() => { if (S.stato && !S.busy) $("freshText").textContent = agoShort(new Date(S.stato.ora)); }, 60000);
 boot();
 </script>
 </body>
