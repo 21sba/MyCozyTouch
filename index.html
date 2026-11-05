@@ -1111,18 +1111,17 @@ function drawLevel(box, frame, range, prefix) {
   // minimo impostato (a gradini), solo per 24 ore e 3 giorni
   let minPath = "", minLabel = "";
   if (range <= 3) {
-    let open = false, first = null;
+    let first = null, prevT = null;
     for (let i = 0; i < raw.length; i++) {
       const r = raw[i], n = raw[i + 1];
-      if (r.soglia == null) { open = false; continue; }
-      const x1 = X(r.t), y = Y(r.soglia);
+      const y = Y(r.soglia ?? 0), x1 = X(r.t);
       const x2 = n && n.t - r.t < 2 * 3600000 ? X(n.t) : x1;
-      minPath += ` M${x1.toFixed(1)},${y.toFixed(1)}`;
-      minPath += ` L${x2.toFixed(1)},${y.toFixed(1)}`;
-      if (!first) first = [x1, y];
-      open = !!(n && n.soglia != null && n.t - r.t < 2 * 3600000);
+      const joined = prevT != null && r.t - prevT < 2 * 3600000;
+      minPath += `${joined ? " L" : " M"}${x1.toFixed(1)},${y.toFixed(1)} L${x2.toFixed(1)},${y.toFixed(1)}`;
+      if (!first && r.soglia != null) first = [x1, y];
+      prevT = r.t;
     }
-    if (first) minLabel = `<text x="${(first[0] + 2).toFixed(1)}" y="${(first[1] - 7).toFixed(1)}" font-size="11" font-weight="600" font-family="var(--body)" fill="var(--ink)" fill-opacity=".6">minimo</text>`;
+    if (first) minLabel = `<text x="${(first[0] + 2).toFixed(1)}" y="${(first[1] - 7).toFixed(1)}" font-size="11" font-weight="600" font-family="var(--body)" fill="var(--ink)" fill-opacity=".38">minimo</text>`;
   }
   const lastP = pts[pts.length - 1];
   const gid = prefix + "Grad";
@@ -1132,7 +1131,7 @@ function drawLevel(box, frame, range, prefix) {
     <line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--track)" stroke-width="2" stroke-linecap="round"/>
     <path d="${area}" fill="url(#${gid})"/>
     ${clips ? `<path d="${area}" fill="url(#${gid}B)" clip-path="url(#${cid})"/>` : ""}
-    ${minPath ? `<path d="${minPath}" fill="none" stroke="var(--ink)" stroke-opacity=".5" stroke-width="2" stroke-dasharray="1 5" stroke-linecap="round" stroke-linejoin="round"/>${minLabel}` : ""}
+    ${minPath ? `<path d="${minPath}" fill="none" stroke="var(--ink)" stroke-opacity=".16" stroke-width="1.5" stroke-linejoin="round" stroke-linejoin="round"/>${minLabel}` : ""}
     <path d="${line}" fill="none" stroke="var(--level)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     ${clips ? `<path d="${line}" fill="none" stroke="var(--hot)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#${cid})"/>` : ""}
     <circle cx="${lastP[0]}" cy="${lastP[1]}" r="6" fill="${rows[rows.length - 1].boost ? "var(--hot)" : "var(--level)"}" stroke="var(--surface)" stroke-width="3"/>
