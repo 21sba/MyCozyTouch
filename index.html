@@ -53,7 +53,13 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; zoom: var(--z, 1); }
+/* schermi grandi: ingrandisco tutta l'interfaccia invece di lasciarla piccola in un angolo */
+@media (min-width: 1600px) { :root { --z: 1.2; } }
+@media (min-width: 1920px) { :root { --z: 1.4; } }
+@media (min-width: 2300px) { :root { --z: 1.65; } }
+@media (min-width: 2800px) { :root { --z: 2; } }
+@media (min-width: 3400px) { :root { --z: 2.4; } }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); font-variant-numeric: tabular-nums; }
 h1, h2, h3 { font-family: var(--display); font-weight: 800; margin: 0; text-wrap: balance; letter-spacing: -0.025em; }
 h1 { font-size: 2rem; line-height: 1.05; }
@@ -71,7 +77,7 @@ a { color: var(--ink); }
 .ic { width: 20px; height: 20px; flex: none; }
 
 /* ---------- impalcatura ---------- */
-.app { min-height: 100vh; }
+.app { min-height: calc(100vh / var(--z, 1)); }
 .content {
   max-width: 560px; margin: 0 auto;
   padding-left: max(18px, env(safe-area-inset-left, 0px));
@@ -127,6 +133,7 @@ a { color: var(--ink); }
   .nav { background: var(--surface); }
   .content { margin-left: 248px; max-width: none; padding: 36px 48px 56px; }
   .view { max-width: 1040px; }
+  section.view { margin-inline: auto; }
   .view.narrow { max-width: 680px; }
   h1 { font-size: 2.4rem; }
 }
@@ -293,13 +300,13 @@ input[type="text"] { width: 100%; }
 
 /* ---------- pannello ---------- */
 .sheet-wrap { position: fixed; inset: 0; z-index: 40; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
-.sheet { background: var(--bg); width: 100%; max-height: 92vh; overflow: auto; border-radius: 34px 34px 0 0; padding: 0 max(20px, env(safe-area-inset-left, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px); }
+.sheet { background: var(--bg); width: 100%; max-height: calc(92vh / var(--z, 1)); overflow: auto; border-radius: 34px 34px 0 0; padding: 0 max(20px, env(safe-area-inset-left, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px); }
 .sheet header { position: sticky; top: 0; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 14px; z-index: 1; }
 .sheet .grab { width: 44px; height: 5px; border-radius: 3px; background: var(--line); margin: 10px auto 0; }
 .sheet-body { display: grid; gap: 18px; }
 @media (min-width: 700px) {
   .sheet-wrap { align-items: center; }
-  .sheet { width: min(560px, 92vw); border-radius: 34px; padding: 0 28px 28px; max-height: 86vh; }
+  .sheet { width: min(560px, 92vw); border-radius: 34px; padding: 0 28px 28px; max-height: calc(86vh / var(--z, 1)); }
   .sheet .grab { display: none; }
 }
 
@@ -960,7 +967,7 @@ function renderProgram() {
   const on = S.config.automatico !== false;
   $("autoSwitch").checked = on; $("autoCard").classList.toggle("off", !on);
   $("autoTitle").textContent = on ? "Automatico attivo" : "Automatico in pausa";
-  $("autoSub").textContent = on ? "Ogni 30 minuti controlla l'acqua calda e accende il Boost se è sotto il minimo della fascia." : "Lo script non accende il Boost da solo. Riattivalo quando vuoi.";
+  $("autoSub").textContent = on ? `Ogni ${S.workerComanda ? 5 : 30} minuti controlla l'acqua calda e accende il Boost se è sotto il minimo della fascia.` : "Lo script non accende il Boost da solo. Riattivalo quando vuoi.";
   renderSugHint();
 }
 function renderSugHint() {
@@ -1243,8 +1250,9 @@ function attachHover(container, frame, W, pick, prefix) {
     if (dot) { dot.setAttribute("cx", p.x); dot.setAttribute("cy", p.y); dot.setAttribute("visibility", "visible"); }
     const sc = rect.width / W, fr = frame.getBoundingClientRect();
     tip.innerHTML = p.html; tip.hidden = false;
-    tip.style.left = Math.max(90, Math.min(fr.width - 90, rect.left - fr.left + p.x * sc)) + "px";
-    tip.style.top = (rect.top - fr.top + p.y * sc - 10) + "px";
+    const z = fr.width / (frame.offsetWidth || fr.width) || 1; // con lo zoom dei schermi grandi le misure visive vanno riportate a quelle della pagina
+    tip.style.left = Math.max(90, Math.min(frame.offsetWidth - 90, (rect.left - fr.left + p.x * sc) / z)) + "px";
+    tip.style.top = ((rect.top - fr.top + p.y * sc) / z - 10) + "px";
   };
   const leave = () => { tip.hidden = true; cross && cross.setAttribute("visibility", "hidden"); dot && dot.setAttribute("visibility", "hidden"); };
   svg.addEventListener("pointermove", move); svg.addEventListener("pointerdown", move); svg.addEventListener("pointerleave", leave);
