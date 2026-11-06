@@ -1124,15 +1124,24 @@ function sheetAdvice() {
 
 /* ================= STATISTICHE ================= */
 function smoothPath(pts) {
-  // curva morbida che passa per i punti (Catmull-Rom -> Bezier), senza superare 0..100
-  if (pts.length < 2) return "";
-  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
-    const t = 0.18;
-    const c1 = [p1[0] + (p2[0] - p0[0]) * t, p1[1] + (p2[1] - p0[1]) * t];
-    const c2 = [p2[0] - (p3[0] - p1[0]) * t, p2[1] - (p3[1] - p1[1]) * t];
-    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  // curva morbida che passa per i punti ma non "rimbalza" mai oltre i valori misurati
+  // (spline cubica monotona, Fritsch-Carlson): niente cunette sopra il 100% o sotto lo 0%
+  const n = pts.length; if (n < 2) return "";
+  const f = (v) => v.toFixed(1);
+  const dx = [], sec = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = Math.max(1e-6, pts[i + 1][0] - pts[i][0]); sec[i] = (pts[i + 1][1] - pts[i][1]) / dx[i]; }
+  const m = new Array(n);
+  m[0] = sec[0]; m[n - 1] = sec[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = sec[i - 1] * sec[i] <= 0 ? 0 : (sec[i - 1] + sec[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (sec[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / sec[i], b = m[i + 1] / sec[i], q = a * a + b * b;
+    if (q > 9) { const tau = 3 / Math.sqrt(q); m[i] = tau * a * sec[i]; m[i + 1] = tau * b * sec[i]; }
+  }
+  let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += ` C${f(pts[i][0] + h)},${f(pts[i][1] + m[i] * h)} ${f(pts[i + 1][0] - h)},${f(pts[i + 1][1] - m[i + 1] * h)} ${f(pts[i + 1][0])},${f(pts[i + 1][1])}`;
   }
   return d;
 }
