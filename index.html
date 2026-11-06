@@ -206,6 +206,8 @@ a { color: var(--ink); }
 .status:empty { display: none; }
 .status.err { color: var(--bad); }
 .status.ok { color: var(--good); }
+.banner.warn { background: var(--sun-soft); color: var(--ink); }
+.banner.warn button { margin-top: 8px; }
 .banner { padding: 14px 18px; border-radius: 22px; background: var(--cold-soft); font-size: 0.95rem; }
 .eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .link { border: 0; background: none; padding: 0; color: var(--ink); font-weight: 600; font-size: 0.92rem; text-decoration: underline; text-underline-offset: 3px; }
@@ -337,6 +339,12 @@ input[type="text"] { width: 100%; }
 .controls { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
 .list { display: grid; padding: 6px 0; }
 .list .li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 20px; font-size: 0.95rem; }
+.evhead { display: flex; align-items: center; gap: 6px; }
+.evhead svg { width: 14px; height: 14px; flex: none; }
+.list .li.evb { width: calc(100% - 12px); margin: 0 6px; padding: 10px 14px; border: 0; border-radius: 18px; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; align-items: center; }
+.list .li.evb:hover { background: var(--sunk); }
+.list .li.evb[aria-pressed="true"] { background: var(--hot-soft); }
+.list .li.evb[aria-pressed="true"] .evi { background: var(--surface); }
 .list .li .evl { display: flex; align-items: center; gap: 12px; }
 .list .li .evt { display: grid; gap: 1px; line-height: 1.25; }
 .list .li .evt b { font-weight: 700; }
@@ -434,6 +442,7 @@ input[type="text"] { width: 100%; }
               </div>
             </div>
             <p class="banner" id="vacBanner" hidden></p>
+            <p class="banner warn" id="staleBanner" hidden></p>
             <button class="btn hot block" id="btnBoost" type="button"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.6 2.3c.3 2.7-.9 4.4-2.3 6C8.8 10 7 11.9 7 15a5 5 0 0 0 10 0c0-1.7-.6-3.1-1.5-4.3-.2 1.3-.9 2.3-2 2.8.4-2.9-.2-6.3-.9-11.2z"/></svg><span id="boostLabel">Accendi il Boost</span></button>
             <p class="status" id="actStatus" role="status" aria-live="polite"></p>
           </div>
@@ -502,7 +511,7 @@ input[type="text"] { width: 100%; }
             <p class="small muted" style="padding:0 8px 2px"><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:var(--hot);vertical-align:middle;margin:0 2px 2px"></span> Boost acceso</p>
           </div>
           <div class="group">
-            <p class="eyebrow">Ultimi Boost accesi</p>
+            <p class="eyebrow evhead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 2.5c.3 2.7-.9 4.4-2.3 6C8.8 10 7 11.9 7 15a5 5 0 0 0 10 0c0-1.7-.6-3.1-1.5-4.3-.2 1.3-.9 2.3-2 2.8.4-2.9-.2-6.3-.9-11z"/></svg>Ultimi Boost accesi</p>
             <div class="card list" id="events"></div>
           </div>
         </div>
@@ -864,6 +873,9 @@ function renderHome() {
   const s = S.stato;
   if (!s) { $("showers").innerHTML = "–<span>Tocca l'orologio in alto per aggiornare</span>"; $("statusLine").innerHTML = ""; drawTank(null); renderNowCard(); return; }
   $("freshText").textContent = agoShort(new Date(s.ora));
+  const sb = $("staleBanner"), vecchi = !fastCfg() && Date.now() - new Date(s.ora) > 25 * 60000;
+  sb.hidden = !vecchi;
+  if (vecchi) { sb.innerHTML = `Questo dispositivo legge i dati da GitHub, che non si aggiornano più (ultimo dato: ${agoShort(new Date(s.ora))}). Collega il Worker per vederli in tempo reale.<br><button class="btn sm" type="button" id="btnStaleFix">Collega ora</button>`; $("btnStaleFix").onclick = () => openSheet("veloce"); }
   const n = s.litri_v40 != null ? Math.floor(s.litri_v40 / SHOWER_L) : showersAt(s.percentuale);
   const T = s.temperature || {}; const temp = T.alto ?? T.media ?? T.centro;
   $("showers").innerHTML = `${docce(n)}<span>pronte adesso${temp != null ? ` · ${fmtN(temp, 0)}°` : ""}</span>`;
@@ -1217,11 +1229,21 @@ function drawLevel(box, frame, range, prefix) {
     }
     if (first) minLabel = `<text x="${(first[0] + 2).toFixed(1)}" y="${(first[1] - 7).toFixed(1)}" font-size="11" font-weight="600" font-family="var(--body)" fill="var(--ink)" fill-opacity=".38">minimo</text>`;
   }
+  // Boost scelto nella lista: fascia evidenziata nel grafico
+  let selBand = "";
+  if (S.selBoost && prefix === "lv") {
+    const a = Math.max(S.selBoost.t0, +start), z = Math.min(S.selBoost.t1, +end);
+    if (z > a) {
+      const x1 = X(new Date(a)), x2 = Math.max(x1 + 6, X(new Date(z)));
+      selBand = `<rect x="${x1.toFixed(1)}" y="${T}" width="${(x2 - x1).toFixed(1)}" height="${(Y(0) - T).toFixed(1)}" rx="8" fill="var(--hot)" fill-opacity=".14"/><line x1="${x1.toFixed(1)}" x2="${x1.toFixed(1)}" y1="${T}" y2="${Y(0)}" stroke="var(--hot)" stroke-width="1.5" stroke-dasharray="3 3"/><line x1="${x2.toFixed(1)}" x2="${x2.toFixed(1)}" y1="${T}" y2="${Y(0)}" stroke="var(--hot)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+    }
+  }
   const lastP = pts[pts.length - 1];
   const gid = prefix + "Grad";
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Acqua calda nel tempo">
     <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--level)" stop-opacity=".2"/><stop offset="1" stop-color="var(--level)" stop-opacity="0"/></linearGradient><linearGradient id="${gid}B" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--hot)" stop-opacity=".32"/><stop offset=".75" stop-color="var(--hot)" stop-opacity="0"/></linearGradient>${clips ? `<clipPath id="${cid}">${clips}</clipPath>` : ""}</defs>
     ${grid}
+    ${selBand}
     <line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--track)" stroke-width="2" stroke-linecap="round"/>
     <path d="${area}" fill="url(#${gid})"/>
     ${clips ? `<path d="${area}" fill="url(#${gid}B)" clip-path="url(#${cid})"/>` : ""}
@@ -1259,10 +1281,19 @@ function attachHover(container, frame, W, pick, prefix) {
   const leave = () => { tip.hidden = true; cross && cross.setAttribute("visibility", "hidden"); dot && dot.setAttribute("visibility", "hidden"); };
   svg.addEventListener("pointermove", move); svg.addEventListener("pointerdown", move); svg.addEventListener("pointerleave", leave);
 }
+$("events").addEventListener("click", (e) => {
+  const b = e.target.closest(".evb"); if (!b || !S.evList) return;
+  const r = S.evList[Number(b.dataset.i)]; if (!r) return;
+  if (S.selBoost && S.selBoost.t0 === +r.t) { S.selBoost = null; renderLevel(); return; }
+  S.selBoost = { t0: +r.t, t1: r.live ? Date.now() : +r.tEnd };
+  const days = (Date.now() - +r.t) / 864e5, need = days <= 1 ? 1 : days <= 3 ? 3 : 7;
+  if (need > S.range) document.querySelector(`[data-range="${need}"]`).click(); else renderLevel();
+  $("lvBox").scrollIntoView({ behavior: "smooth", block: "center" });
+});
 function renderLevel() {
   if (S.tab !== "statistiche") return;
   drawLevel($("lvChart"), $("lvBox"), S.range, "lv");
-  const ev = boostEvents().slice(-8).reverse();
+  const ev = boostEvents().slice(-8).reverse(); S.evList = ev;
   const NOME = { auto: "Automatico", manuale: "Manuale, dalla dashboard", app: "Manuale, da app o scaldabagno" };
   const IC = { auto: ICON.auto, manuale: ICON.tap, app: ICON.phone };
   const dur = (min) => min < 60 ? `${Math.max(1, Math.round(min))} min` : `${Math.floor(min / 60)} h${Math.round(min % 60) ? " " + String(Math.round(min % 60)).padStart(2, "0") : ""}`;
@@ -1270,7 +1301,8 @@ function renderLevel() {
     const kwh = r.kwh == null ? "" : ` · ${fmtN(r.kwh, 1)} kWh`;
     const head = r.live ? `In corso${kwh}` : `${dur(r.min)}${kwh}`;
     const sub = r.live ? `dal ${fmtN(r.pct)}% (ora ${fmtN(r.pctEnd)}%)` : `dal ${fmtN(r.pct)}% al ${fmtN(r.pctEnd)}%`;
-    return `<div class="li"><span class="evl"><span class="evi" role="img" aria-label="${NOME[r.kind]}" title="${NOME[r.kind]}">${IC[r.kind]}</span><span class="evt"><b>${head}</b><small>${sub}</small></span></span><span class="mono">${fmtDay(r.t)} ${fmtTime(r.t)}</span></div>`;
+    const sel = S.selBoost && S.selBoost.t0 === +r.t;
+    return `<button type="button" class="li evb" data-i="${ev.indexOf(r)}" aria-pressed="${sel ? "true" : "false"}" title="Mostra nel grafico"><span class="evl"><span class="evi" role="img" aria-label="${NOME[r.kind]}" title="${NOME[r.kind]}">${IC[r.kind]}</span><span class="evt"><b>${head}</b><small>${sub}</small></span></span><span class="mono">${fmtDay(r.t)} ${fmtTime(r.t)}</span></button>`;
   }).join("") : '<p class="empty">Ancora nessun Boost acceso.</p>';
 }
 /* Boost accesi: dallo script (auto), dal pulsante della dashboard (manuale) oppure da fuori
@@ -1295,7 +1327,7 @@ function boostEvents() {
       const h = Math.min(rows[k + 1].t - rows[k].t, 20 * 60000) / 3600000; // intervalli lunghi (buchi nei dati) non contano oltre 20 minuti
       kwh += ((a ?? b) + (b ?? a)) / 2 * h / 1000; seen = true;
     }
-    out.push({ ...r, kind, live, pctEnd: endRow.pct, min: Math.max(0, (endRow.t - r.t) / 60000), kwh: seen ? kwh : null });
+    out.push({ ...r, kind, live, tEnd: endRow.t, pctEnd: endRow.pct, min: Math.max(0, (endRow.t - r.t) / 60000), kwh: seen ? kwh : null });
   }
   return out;
 }
@@ -1639,6 +1671,8 @@ function sheetFast() {
     <p class="status" id="fStatus" role="status" aria-live="polite"></p>
     ${c ? `<hr style="border:0;border-top:1.5px solid var(--line);margin:6px 0">
     <p class="muted small"><b>Controllo ogni 5 minuti.</b> ${S.fromWorker ? (S.workerComanda ? "Il Worker controlla da solo lo scaldabagno e comanda il Boost." : "Il Worker sta solo osservando: decide ma non comanda (c'\u00e8 ancora GitHub).") : "Il Worker non ha ancora raccolto dati."}</p>
+    <button class="btn" type="button" id="fCopy">Copia il link per un altro dispositivo</button>
+    <p class="status" id="fCopyStatus" role="status" aria-live="polite"></p>
     <button class="btn" type="button" id="fImport">Porta qui lo storico di GitHub</button>
     <p class="status" id="fImpStatus" role="status" aria-live="polite"></p>` : ""}`;
   $("fSave").onclick = async () => {
@@ -1655,6 +1689,13 @@ function sheetFast() {
     } finally { $("fSave").disabled = false; }
   };
   if ($("fImport")) $("fImport").onclick = importLegacy;
+  if ($("fCopy")) $("fCopy").onclick = async () => {
+    const k = fastCfg(); if (!k) return;
+    const b64 = btoa(k.url + "\n" + k.key).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const link = location.origin + location.pathname + "#cf=" + b64;
+    try { await navigator.clipboard.writeText(link); setStatus("fCopyStatus", "Link copiato. Aprilo sull'altro dispositivo: contiene la chiave, mandalo solo a chi di famiglia.", "ok"); }
+    catch { setStatus("fCopyStatus", link, "ok"); }
+  };
   if ($("fOff")) $("fOff").onclick = () => { store.del("cf_url"); store.del("cf_key"); renderSettings(); sheetFast(); setStatus("fStatus", "Disattivato.", "ok"); };
 }
 
@@ -1728,7 +1769,17 @@ $("lnkActions").href = `https://github.com/${OWNER}/${REPO}/actions`;
 
 /* ================= avvio ================= */
 function showSetup(msg) { $("appWrap").hidden = true; $("setupWrap").hidden = false; if (msg) setStatus("setupStatus", msg, "err"); }
+/* link di configurazione (#cf=…): imposta il collegamento veloce su questo dispositivo */
+function applyCfHash() {
+  try {
+    const m = location.hash.match(/^#cf=([A-Za-z0-9_-]+)/); if (!m) return;
+    const [u, k] = atob(m[1].replace(/-/g, "+").replace(/_/g, "/")).split("\n");
+    if (/^https:\/\//.test(u) && k) { store.set("cf_url", u); store.set("cf_key", k); }
+    history.replaceState(null, "", location.pathname + location.search + "#casa");
+  } catch { /* link rovinato: lo ignoro */ }
+}
 async function boot() {
+  applyCfHash();
   if (!S.token) return showSetup();
   $("setupWrap").hidden = true; $("appWrap").hidden = false;
   showTab(location.hash.slice(1) || "casa");
