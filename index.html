@@ -581,11 +581,11 @@ const store = {
 };
 /* ---- collegamento veloce (Cloudflare Worker): opzionale, se manca si usa GitHub ---- */
 const fastCfg = () => { const url = (store.get("cf_url") || "").trim().replace(/\/+$/, ""), key = (store.get("cf_key") || "").trim(); return url && key ? { url, key } : null; };
-async function fastCall(path, body) {
+async function fastCall(path, body, method) {
   const c = fastCfg(); if (!c) throw new Error("Collegamento veloce non impostato");
   const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 25000);
   try {
-    const r = await fetch(c.url + path, { method: body ? "POST" : "GET", headers: { "X-Key": c.key, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined, signal: ctl.signal });
+    const r = await fetch(c.url + path, { method: body ? (method || "POST") : "GET", headers: { "X-Key": c.key, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined, signal: ctl.signal });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.errore || `Errore ${r.status}`);
     return d;
@@ -630,7 +630,24 @@ async function gh(path, opts = {}) {
 const rawFile = (path, ref) => gh(`/contents/${path}?ref=${ref}`, { raw: true });
 const b64 = (s) => btoa(unescape(encodeURIComponent(s)));
 const unb64 = (s) => decodeURIComponent(escape(atob(s.replace(/\n/g, ""))));
+async function loadFromWorker() {
+  if (!fastCfg()) return false;
+  try {
+    const d = await fastCall("/dati?giorni=14");
+    if (!d.stato) return false; // il Worker non ha ancora raccolto dati: uso GitHub
+    S.stato = d.stato; S.storico = parseCsv(d.storico || ""); if (d.consumi) S.consumi = d.consumi; S.workerComanda = !!d.worker_comanda;
+    if (d.config) S.config = normalizeConfig(d.config);
+    else { // prima volta: il programma di GitHub passa al Worker
+      const latest = await gh("/contents/config.json?ref=main").catch(() => null);
+      S.config = normalizeConfig(latest ? JSON.parse(unb64(latest.content)) : {});
+      await fastCall("/config", cleanConfig(JSON.parse(JSON.stringify(S.config))), "PUT").catch(() => {});
+    }
+    S.fromWorker = true; mergeLive(); return true;
+  } catch { return false; }
+}
 async function loadAll() {
+  S.fromWorker = false;
+  if (await loadFromWorker()) return;
   const [stato, storico, consumi, cfg] = await Promise.allSettled([
     rawFile("stato.json", "dati"), rawFile("storico.csv", "dati"), rawFile("consumi.json", "dati"),
     gh("/contents/config.json?ref=main"),
@@ -672,8 +689,17 @@ function cleanConfig(c) {
 }
 async function saveConfig(mutate, message) {
   const latest = await gh("/contents/config.json?ref=main").catch((e) => { if (e.notFound) return null; throw e; });
-  const base = normalizeConfig(latest ? JSON.parse(unb64(latest.content)) : {});
+  let baseRaw = latest ? JSON.parse(unb64(latest.content)) : {};
+  if (fastCfg() && S.fromWorker) { // il Worker e' la fonte del programma
+    try { const d = await fastCall("/dati?giorni=1"); if (d.config) baseRaw = d.config; }
+    catch (e) { throw new Error("Non riesco a leggere il programma dal collegamento veloce: " + e.message); }
+  }
+  const base = normalizeConfig(baseRaw);
   const next = cleanConfig(mutate(JSON.parse(JSON.stringify(base))));
+  if (fastCfg()) {
+    try { await fastCall("/config", next, "PUT"); }
+    catch (e) { throw new Error("Non riesco a salvare sul collegamento veloce: " + e.message); }
+  }
   const body = { message, content: b64(JSON.stringify(next, null, 2) + "\n"), branch: "main" };
   if (latest) body.sha = latest.sha;
   await gh("/contents/config.json", { method: "PUT", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
@@ -1529,7 +1555,11 @@ function sheetFast() {
     <label class="q"><span class="ql">Chiave</span><input type="text" id="fKey" value="${esc(c ? c.key : "")}" placeholder="La chiave che hai scelto" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
     <button class="btn primary" type="button" id="fSave">Salva e prova</button>
     ${c ? '<button class="btn" type="button" id="fOff">Disattiva</button>' : ""}
-    <p class="status" id="fStatus" role="status" aria-live="polite"></p>`;
+    <p class="status" id="fStatus" role="status" aria-live="polite"></p>
+    ${c ? `<hr style="border:0;border-top:1.5px solid var(--line);margin:6px 0">
+    <p class="muted small"><b>Controllo ogni 10 minuti.</b> ${S.fromWorker ? (S.workerComanda ? "Il Worker controlla da solo lo scaldabagno e comanda il Boost." : "Il Worker sta solo osservando: decide ma non comanda (c'\u00e8 ancora GitHub).") : "Il Worker non ha ancora raccolto dati."}</p>
+    <button class="btn" type="button" id="fImport">Porta qui lo storico di GitHub</button>
+    <p class="status" id="fImpStatus" role="status" aria-live="polite"></p>` : ""}`;
   $("fSave").onclick = async () => {
     const url = $("fUrl").value.trim(), key = $("fKey").value.trim();
     if (!/^https:\/\//.test(url) || !key) return setStatus("fStatus", "Servono l'indirizzo (che inizia con https://) e la chiave.", "err");
@@ -1543,7 +1573,24 @@ function sheetFast() {
       setStatus("fStatus", e.message, "err");
     } finally { $("fSave").disabled = false; }
   };
+  if ($("fImport")) $("fImport").onclick = importLegacy;
   if ($("fOff")) $("fOff").onclick = () => { store.del("cf_url"); store.del("cf_key"); renderSettings(); sheetFast(); setStatus("fStatus", "Disattivato.", "ok"); };
+}
+
+async function importLegacy() {
+  const st = (t, k) => setStatus("fImpStatus", t, k); $("fImport").disabled = true;
+  try {
+    st("Leggo i dati di GitHub…");
+    const [csv, cons, stato] = await Promise.all([rawFile("storico.csv", "dati"), rawFile("consumi.json", "dati").catch(() => null), rawFile("stato.json", "dati").catch(() => null)]);
+    const lines = csv.trim().split(/\r?\n/); const head = lines.shift(); const CH = 150; let sent = 0;
+    for (let i = 0; i < lines.length; i += CH) {
+      await fastCall("/importa", { storico: head + "\n" + lines.slice(i, i + CH).join("\n") + "\n" });
+      sent = Math.min(lines.length, i + CH); st(`Importo lo storico… ${sent} di ${lines.length}`);
+    }
+    await fastCall("/importa", { consumi: cons ? JSON.parse(cons) : undefined, stato: stato ? JSON.parse(stato) : undefined });
+    await loadAll(); renderAll();
+    st(`Fatto: ${lines.length} rilevazioni e i consumi sono nel Worker.`, "ok");
+  } catch (e) { st(e.message, "err"); } finally { if ($("fImport")) $("fImport").disabled = false; }
 }
 
 function sheetDetails() {
