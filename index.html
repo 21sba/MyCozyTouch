@@ -393,17 +393,17 @@ input[type="text"] { width: 100%; }
   <div class="content" id="setupWrap" hidden>
     <section class="card setup">
       <h2>Collega la dashboard</h2>
-      <p>La pagina legge e comanda il repository privato <span class="mono">AutoCozyTouch</span> con una chiave GitHub che vale solo per lui. La chiave resta salvata su questo dispositivo.</p>
-      <ol>
-        <li>Apri <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → nuova chiave (Fine-grained token)</a>.</li>
-        <li>Nome a piacere e la scadenza che preferisci.</li>
-        <li><b>Repository access</b>: "Only select repositories" → <span class="mono">AutoCozyTouch</span>.</li>
-        <li><b>Permissions → Repository permissions</b>: <i>Actions</i> = Read and write, <i>Contents</i> = Read and write.</li>
-        <li>Genera la chiave, copiala e incollala qui sotto.</li>
-      </ol>
+      <p>La pagina parla con lo scaldabagno tramite il tuo Worker su Cloudflare. Servono il suo indirizzo e la chiave che hai scelto quando l'hai creato. Restano salvati solo su questo dispositivo.</p>
+      <p class="small muted">Più comodo: se hai già un altro dispositivo collegato, vai lì in Impostazioni → Collegamento veloce → «Copia il link per un altro dispositivo» e aprilo qui.</p>
       <form id="setupForm" class="field">
-        <label for="token" class="small muted">Chiave GitHub</label>
-        <input id="token" type="password" autocomplete="off" placeholder="github_pat_…" required>
+        <label for="wUrl" class="small muted">Indirizzo del Worker</label>
+        <input id="wUrl" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://…workers.dev">
+        <label for="wKey" class="small muted">Chiave</label>
+        <input id="wKey" type="password" autocomplete="off" placeholder="La chiave che hai scelto">
+        <details class="small" style="margin-top:6px"><summary class="muted" style="cursor:pointer">Ho solo una chiave GitHub (modo di riserva)</summary>
+          <div class="field" style="margin-top:8px"><label for="token" class="small muted">Chiave GitHub</label>
+          <input id="token" type="password" autocomplete="off" placeholder="github_pat_…"></div>
+        </details>
         <button class="btn primary" type="submit">Collega</button>
         <p class="status" id="setupStatus"></p>
       </form>
@@ -637,6 +637,7 @@ async function liveRefresh() {
   if (!fastCfg() || liveBusy || S.busy) return; liveBusy = true;
   try { applyLive(await fastCall("/stato")); if (!S.sheet) renderAll(); } catch {} finally { liveBusy = false; }
 }
+const loggedIn = () => !!(S.token || fastCfg());
 const S = {
   token: store.get("gh_token"), stato: null, storico: [], consumi: null, config: null,
   draft: null, season: null, range: 1, cons: "litri", view: "giorni", stat: "livello", busy: false,
@@ -646,6 +647,7 @@ let uid = 0;
 
 /* ================= GitHub ================= */
 async function gh(path, opts = {}) {
+  if (!S.token) { const e = new Error("Questa funzione di riserva richiede la chiave GitHub, che su questo dispositivo non c'è."); e.noToken = true; e.notFound = true; throw e; }
   const res = await fetch(path.startsWith("http") ? path : API + path, {
     ...opts, cache: "no-store",
     headers: { Authorization: `Bearer ${S.token}`, "X-GitHub-Api-Version": "2022-11-28",
@@ -670,7 +672,7 @@ async function loadFromWorker() {
     S.stato = d.stato; S.storico = parseCsv(d.storico || ""); if (d.consumi) S.consumi = d.consumi; S.workerComanda = !!d.worker_comanda;
     if (d.config) S.config = normalizeConfig(d.config);
     else { // prima volta: il programma di GitHub passa al Worker
-      const latest = await gh("/contents/config.json?ref=main").catch(() => null);
+      const latest = S.token ? await gh("/contents/config.json?ref=main").catch(() => null) : null;
       S.config = normalizeConfig(latest ? JSON.parse(unb64(latest.content)) : {});
       await fastCall("/config", cleanConfig(JSON.parse(JSON.stringify(S.config))), "PUT").catch(() => {});
     }
@@ -680,6 +682,7 @@ async function loadFromWorker() {
 async function loadAll() {
   S.fromWorker = false;
   if (await loadFromWorker()) return;
+  if (!S.token) throw new Error("Il Worker non risponde adesso. Riprova tra poco.");
   const [stato, storico, consumi, cfg] = await Promise.allSettled([
     rawFile("stato.json", "dati"), rawFile("storico.csv", "dati"), rawFile("consumi.json", "dati"),
     gh("/contents/config.json?ref=main"),
@@ -720,7 +723,7 @@ function cleanConfig(c) {
     vacanza: c.vacanza || null, notifiche: c.notifiche, sole: c.sole };
 }
 async function saveConfig(mutate, message) {
-  const latest = await gh("/contents/config.json?ref=main").catch((e) => { if (e.notFound) return null; throw e; });
+  const latest = S.token ? await gh("/contents/config.json?ref=main").catch((e) => { if (e.notFound) return null; throw e; }) : null;
   let baseRaw = latest ? JSON.parse(unb64(latest.content)) : {};
   if (fastCfg() && S.fromWorker) { // il Worker e' la fonte del programma
     try { const d = await fastCall("/dati?giorni=1"); if (d.config) baseRaw = d.config; }
@@ -732,9 +735,11 @@ async function saveConfig(mutate, message) {
     try { await fastCall("/config", next, "PUT"); }
     catch (e) { throw new Error("Non riesco a salvare sul collegamento veloce: " + e.message); }
   }
-  const body = { message, content: b64(JSON.stringify(next, null, 2) + "\n"), branch: "main" };
-  if (latest) body.sha = latest.sha;
-  await gh("/contents/config.json", { method: "PUT", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+  if (S.token) { // copia di riserva anche su GitHub
+    const body = { message, content: b64(JSON.stringify(next, null, 2) + "\n"), branch: "main" };
+    if (latest) body.sha = latest.sha;
+    await gh("/contents/config.json", { method: "PUT", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+  }
   S.config = normalizeConfig(next);
 }
 
@@ -1522,7 +1527,10 @@ async function saveVacation(v) {
     await saveConfig((c) => { c.vacanza = v; return c; }, v ? "Vacanza impostata dalla dashboard" : "Vacanza annullata dalla dashboard");
     renderHome(); renderSettings();
     setStatus("vacStatus", "Salvato. Lo comunico allo scaldabagno…");
-    const run = await dispatch("stato", {}, (t) => setStatus("vacStatus", t));
+    let run;
+    if (fastCfg()) { // il Worker applica subito la vacanza allo scaldabagno
+      try { await fastCall("/esegui", { modalita: "normale" }); run = { conclusion: "success" }; } catch (e) { run = S.token ? await dispatch("stato", {}, (t) => setStatus("vacStatus", t)) : { conclusion: "failure" }; }
+    } else run = await dispatch("stato", {}, (t) => setStatus("vacStatus", t));
     await loadAll(); renderAll();
     if (S.sheet === "vacanza") sheetVac();
     setStatus("vacStatus", run.conclusion === "success" ? (v ? "Fatto: lo scaldabagno andrà in assenza nelle date scelte." : "Fatto: vacanza tolta.") : "Salvato, ma lo scaldabagno non ha confermato. Riprovo al prossimo controllo.", run.conclusion === "success" ? "ok" : "err");
@@ -1696,7 +1704,7 @@ function sheetFast() {
     try { await navigator.clipboard.writeText(link); setStatus("fCopyStatus", "Link copiato. Aprilo sull'altro dispositivo: contiene la chiave, mandalo solo a chi di famiglia.", "ok"); }
     catch { setStatus("fCopyStatus", link, "ok"); }
   };
-  if ($("fOff")) $("fOff").onclick = () => { store.del("cf_url"); store.del("cf_key"); renderSettings(); sheetFast(); setStatus("fStatus", "Disattivato.", "ok"); };
+  if ($("fOff")) $("fOff").onclick = () => { store.del("cf_url"); store.del("cf_key"); if (!S.token) { closeSheet(); showSetup("Collegamento disattivato: per usare la dashboard serve di nuovo l'indirizzo del Worker."); return; } renderSettings(); sheetFast(); setStatus("fStatus", "Disattivato.", "ok"); };
 }
 
 async function importLegacy() {
@@ -1764,7 +1772,7 @@ async function runCommand(modalita) {
 $("btnBoost").addEventListener("click", () => openSheet("boost"));
 $("fabBoost").addEventListener("click", () => openSheet("boost"));
 $("btnRefresh").addEventListener("click", () => runCommand("stato"));
-$("btnLogout").addEventListener("click", () => { store.del("gh_token"); S.token = null; showSetup(); });
+$("btnLogout").addEventListener("click", () => { store.del("gh_token"); store.del("cf_url"); store.del("cf_key"); S.token = null; showSetup(); });
 $("lnkActions").href = `https://github.com/${OWNER}/${REPO}/actions`;
 
 /* ================= avvio ================= */
@@ -1780,22 +1788,33 @@ function applyCfHash() {
 }
 async function boot() {
   applyCfHash();
-  if (!S.token) return showSetup();
+  if (!loggedIn()) return showSetup();
   $("setupWrap").hidden = true; $("appWrap").hidden = false;
   showTab(location.hash.slice(1) || "casa");
   try { await loadAll(); renderAll(); showTab(S.tab); liveRefresh(); }
   catch (e) { if (/chiave/.test(e.message)) return showSetup(e.message); $("freshText").textContent = e.message; }
 }
 $("setupForm").addEventListener("submit", async (e) => {
-  e.preventDefault(); S.token = $("token").value.trim(); setStatus("setupStatus", "Controllo la chiave…");
+  e.preventDefault();
+  const url = $("wUrl").value.trim().replace(/\/+$/, ""), key = $("wKey").value.trim(), tok = $("token").value.trim();
+  if (url || key) {
+    if (!/^https:\/\//.test(url) || !key) return setStatus("setupStatus", "Servono l'indirizzo (che inizia con https://) e la chiave.", "err");
+    const old = [store.get("cf_url"), store.get("cf_key")]; store.set("cf_url", url); store.set("cf_key", key);
+    setStatus("setupStatus", "Provo il collegamento…");
+    try { await fastCall("/stato"); if (tok) { S.token = tok; store.set("gh_token", tok); } $("wKey").value = ""; $("token").value = ""; setStatus("setupStatus", ""); boot(); }
+    catch (err) { old[0] == null ? store.del("cf_url") : store.set("cf_url", old[0]); old[1] == null ? store.del("cf_key") : store.set("cf_key", old[1]); setStatus("setupStatus", err.message, "err"); }
+    return;
+  }
+  if (!tok) return setStatus("setupStatus", "Inserisci l'indirizzo del Worker e la chiave.", "err");
+  S.token = tok; setStatus("setupStatus", "Controllo la chiave…");
   try { await gh(""); store.set("gh_token", S.token); $("token").value = ""; setStatus("setupStatus", ""); boot(); }
   catch (err) { S.token = null; setStatus("setupStatus", err.notFound ? "Con questa chiave non vedo AutoCozyTouch: controlla di averlo selezionato." : err.message, "err"); }
 });
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden || !S.token || S.busy || S.sheet) return;
+  if (document.hidden || !loggedIn() || S.busy || S.sheet) return;
   loadAll().then(() => { if (!isDirty()) S.draft = null; renderAll(); liveRefresh(); }).catch(() => {});
 });
-setInterval(() => { if (!document.hidden && S.token && !S.sheet) liveRefresh(); }, 60000);
+setInterval(() => { if (!document.hidden && loggedIn() && !S.sheet) liveRefresh(); }, 60000);
 let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderNowCard(); renderHomeChart(); renderLevel(); renderCons(); }, 150); });
 setInterval(() => { if (S.stato && !S.busy) $("freshText").textContent = agoShort(new Date(S.stato.ora)); }, 60000);
 boot();
