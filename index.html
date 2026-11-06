@@ -527,6 +527,7 @@ input[type="text"] { width: 100%; }
         <div class="group">
           <p class="eyebrow">Avanzate</p>
           <div class="card settings">
+            <button class="srow" type="button" data-sheet="veloce"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg></span>Collegamento veloce</span><span class="val" id="sumFast"></span></button>
             <button class="srow" type="button" data-sheet="dettagli"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></span>Dettagli tecnici</span><span class="val"></span></button>
             <a class="srow noarrow" id="lnkActions" href="#" target="_blank" rel="noopener"><span><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5H5V6h5"/></svg></span>Esecuzioni su GitHub</span><span class="val">↗</span></a>
             <button class="srow noarrow" type="button" id="btnLogout"><span style="color:var(--bad)"><span class="ibox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h4v16h-4"/><path d="M10 8l-4 4 4 4"/><path d="M6 12h10"/></svg></span>Scollega questo dispositivo</span><span class="val"></span></button>
@@ -578,6 +579,32 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
   del(k) { try { localStorage.removeItem(k); } catch {} },
 };
+/* ---- collegamento veloce (Cloudflare Worker): opzionale, se manca si usa GitHub ---- */
+const fastCfg = () => { const url = (store.get("cf_url") || "").trim().replace(/\/+$/, ""), key = (store.get("cf_key") || "").trim(); return url && key ? { url, key } : null; };
+async function fastCall(path, body) {
+  const c = fastCfg(); if (!c) throw new Error("Collegamento veloce non impostato");
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 25000);
+  try {
+    const r = await fetch(c.url + path, { method: body ? "POST" : "GET", headers: { "X-Key": c.key, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined, signal: ctl.signal });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.errore || `Errore ${r.status}`);
+    return d;
+  } catch (e) { throw new Error(e.name === "AbortError" ? "Il collegamento veloce non risponde" : e.message === "Failed to fetch" ? "Non riesco a raggiungere il collegamento veloce" : e.message); }
+  finally { clearTimeout(to); }
+}
+function mergeLive() {
+  if (!S.live) return;
+  const clean = {}; Object.entries(S.live).forEach(([k, v]) => { if (v != null) clean[k] = v; });
+  if (clean.temperature) clean.temperature = Object.fromEntries(Object.entries(clean.temperature).filter(([, v]) => v != null));
+  if (!S.stato) { S.stato = clean; return; }
+  if (new Date(clean.ora) >= new Date(S.stato.ora)) S.stato = { ...S.stato, ...clean, temperature: { ...(S.stato.temperature || {}), ...(clean.temperature || {}) } };
+}
+function applyLive(snap) { S.live = snap; mergeLive(); }
+let liveBusy = false;
+async function liveRefresh() {
+  if (!fastCfg() || liveBusy || S.busy) return; liveBusy = true;
+  try { applyLive(await fastCall("/stato")); if (!S.sheet) renderAll(); } catch {} finally { liveBusy = false; }
+}
 const S = {
   token: store.get("gh_token"), stato: null, storico: [], consumi: null, config: null,
   draft: null, season: null, range: 1, cons: "litri", view: "giorni", stat: "livello", busy: false,
@@ -613,6 +640,7 @@ async function loadAll() {
   if (storico.status === "fulfilled") S.storico = parseCsv(storico.value);
   if (consumi.status === "fulfilled") S.consumi = JSON.parse(consumi.value);
   S.config = normalizeConfig(cfg.status === "fulfilled" ? JSON.parse(unb64(cfg.value.content)) : {});
+  mergeLive();
 }
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/); const head = lines.shift().split(",");
@@ -778,7 +806,7 @@ $("sheetWrap").addEventListener("click", (e) => { if (e.target === $("sheetWrap"
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.sheet) closeSheet(); });
 function renderSheet() {
   const k = S.sheet; if (!k) return;
-  const map = { boost: sheetBoost, fascia: sheetSlot, vacanza: sheetVac, temperatura: sheetTemp, stagioni: sheetSeasons, notifiche: sheetNotif, sole: sheetSun, prezzo: sheetPrice, dettagli: sheetDetails, consigli: sheetAdvice };
+  const map = { boost: sheetBoost, fascia: sheetSlot, vacanza: sheetVac, temperatura: sheetTemp, stagioni: sheetSeasons, notifiche: sheetNotif, sole: sheetSun, prezzo: sheetPrice, veloce: sheetFast, dettagli: sheetDetails, consigli: sheetAdvice };
   map[k]();
 }
 
@@ -1317,6 +1345,7 @@ function renderSettings() {
   $("sumNotif").textContent = c.notifiche.attive ? "Attive" : "Spente";
   const sole = s.sole; $("sumSun").textContent = !c.sole.attivo ? "Spenti" : sole && !sole.errore ? "Attivi" : "Da collegare";
   $("sumPrice").textContent = `${fmtN(price(), 2)} €/kWh`;
+  $("sumFast").textContent = fastCfg() ? "Attivo" : "Spento";
 }
 document.querySelectorAll("[data-sheet]").forEach((b) => b.addEventListener("click", () => openSheet(b.dataset.sheet)));
 
@@ -1374,6 +1403,13 @@ function sheetTemp() {
   $("tPlus").onclick = () => { S.tTarget += 1; sheetTemp(); };
   $("tApply").onclick = async () => {
     $("tApply").disabled = true;
+    if (fastCfg()) {
+      try {
+        applyLive(await fastCall("/temperatura", { valore: S.tTarget }));
+        S.tTarget = null; renderAll(); if (S.sheet === "temperatura") sheetTemp();
+        setStatus("tStatus", `Fatto: ${fmtN(S.stato.temperatura_impostata)} °C.`, "ok"); return;
+      } catch (e) { setStatus("tStatus", "Collegamento veloce non disponibile, passo da GitHub…"); }
+    }
     try {
       const run = await dispatch("temperatura", { valore: String(S.tTarget) }, (t) => setStatus("tStatus", t));
       await loadAll(); S.tTarget = null; renderAll(); if (S.sheet === "temperatura") sheetTemp();
@@ -1485,6 +1521,31 @@ function sheetPrice() {
   $("price").oninput = () => { store.set("price", $("price").value); renderSettings(); renderCons(); };
 }
 
+function sheetFast() {
+  $("sheetTitle").textContent = "Collegamento veloce";
+  const c = fastCfg();
+  $("sheetBody").innerHTML = `<p class="muted small">Con il collegamento veloce il Boost e l'aggiornamento rispondono in circa un secondo, invece di passare da GitHub. Se non lo imposti o non risponde, l'app usa GitHub come prima.</p>
+    <label class="q"><span class="ql">Indirizzo del Worker</span><input type="text" id="fUrl" value="${esc(c ? c.url : "")}" placeholder="https://…workers.dev" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+    <label class="q"><span class="ql">Chiave</span><input type="text" id="fKey" value="${esc(c ? c.key : "")}" placeholder="La chiave che hai scelto" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+    <button class="btn primary" type="button" id="fSave">Salva e prova</button>
+    ${c ? '<button class="btn" type="button" id="fOff">Disattiva</button>' : ""}
+    <p class="status" id="fStatus" role="status" aria-live="polite"></p>`;
+  $("fSave").onclick = async () => {
+    const url = $("fUrl").value.trim(), key = $("fKey").value.trim();
+    if (!/^https:\/\//.test(url) || !key) return setStatus("fStatus", "Servono l'indirizzo (che inizia con https://) e la chiave.", "err");
+    const old = [store.get("cf_url"), store.get("cf_key")]; store.set("cf_url", url); store.set("cf_key", key);
+    setStatus("fStatus", "Provo…"); $("fSave").disabled = true; const t0 = Date.now();
+    try {
+      const snap = await fastCall("/stato"); applyLive(snap); renderAll(); renderSettings();
+      setStatus("fStatus", `Funziona: ${fmtN(snap.percentuale)}% di acqua calda, risposta in ${((Date.now() - t0) / 1000).toFixed(1)} s.`, "ok");
+    } catch (e) {
+      old[0] == null ? store.del("cf_url") : store.set("cf_url", old[0]); old[1] == null ? store.del("cf_key") : store.set("cf_key", old[1]);
+      setStatus("fStatus", e.message, "err");
+    } finally { $("fSave").disabled = false; }
+  };
+  if ($("fOff")) $("fOff").onclick = () => { store.del("cf_url"); store.del("cf_key"); renderSettings(); sheetFast(); setStatus("fStatus", "Disattivato.", "ok"); };
+}
+
 function sheetDetails() {
   $("sheetTitle").textContent = "Dettagli tecnici";
   const s = S.stato || {}; const T = s.temperature || {}; const t = s.ora ? new Date(s.ora) : null;
@@ -1512,6 +1573,14 @@ async function runCommand(modalita) {
   if (modalita === "boost") $("boostLabel").textContent = "Accendo…";
   setStatus("actStatus", modalita === "boost" ? "Invio la richiesta…" : "");
   try {
+    if (fastCfg() && (modalita === "stato" || modalita === "boost")) {
+      try {
+        const snap = modalita === "boost" ? await fastCall("/boost", { on: true }) : await fastCall("/stato");
+        applyLive(snap); S.busy = false; renderAll();
+        if (modalita === "boost") setStatus("actStatus", snap.boost ? "Boost acceso: sta scaldando al massimo." : "Comando inviato, ma lo scaldabagno non risulta ancora in Boost.", snap.boost ? "ok" : "err");
+        return;
+      } catch (e) { if (modalita === "boost") setStatus("actStatus", "Collegamento veloce non disponibile, passo da GitHub…"); }
+    }
     const run = await dispatch(modalita, {}, (t) => { if (modalita === "boost") setStatus("actStatus", t); });
     await loadAll(); S.busy = false; renderAll();
     if (run.conclusion !== "success") setStatus("actStatus", "Qualcosa non ha funzionato. Riprova tra poco.", "err");
@@ -1531,7 +1600,7 @@ async function boot() {
   if (!S.token) return showSetup();
   $("setupWrap").hidden = true; $("appWrap").hidden = false;
   showTab(location.hash.slice(1) || "casa");
-  try { await loadAll(); renderAll(); showTab(S.tab); }
+  try { await loadAll(); renderAll(); showTab(S.tab); liveRefresh(); }
   catch (e) { if (/chiave/.test(e.message)) return showSetup(e.message); $("freshText").textContent = e.message; }
 }
 $("setupForm").addEventListener("submit", async (e) => {
@@ -1541,8 +1610,9 @@ $("setupForm").addEventListener("submit", async (e) => {
 });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden || !S.token || S.busy || S.sheet) return;
-  loadAll().then(() => { if (!isDirty()) S.draft = null; renderAll(); }).catch(() => {});
+  loadAll().then(() => { if (!isDirty()) S.draft = null; renderAll(); liveRefresh(); }).catch(() => {});
 });
+setInterval(() => { if (!document.hidden && S.token && !S.sheet) liveRefresh(); }, 60000);
 let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderNowCard(); renderHomeChart(); renderLevel(); renderCons(); }, 150); });
 setInterval(() => { if (S.stato && !S.busy) $("freshText").textContent = agoShort(new Date(S.stato.ora)); }, 60000);
 boot();
