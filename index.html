@@ -1232,9 +1232,25 @@ function attachHover(container, frame, W, pick, prefix) {
 function renderLevel() {
   if (S.tab !== "statistiche") return;
   drawLevel($("lvChart"), $("lvBox"), S.range, "lv");
-  const ev = S.storico.filter((r) => r.azione === "boost_auto" || r.azione === "boost_manuale").slice(-8).reverse();
-  $("events").innerHTML = ev.length ? ev.map((r) => `<div class="li"><span>${r.azione === "boost_auto" ? "Automatico" : "Manuale"}, con il ${fmtN(r.pct)}%</span><span class="mono">${fmtDay(r.t)} ${fmtTime(r.t)}</span></div>`).join("")
-    : '<p class="empty">Ancora nessun Boost acceso dallo script.</p>';
+  const ev = boostEvents().slice(-8).reverse();
+  const NOME = { auto: "Automatico", manuale: "Manuale", app: "Manuale app" };
+  $("events").innerHTML = ev.length ? ev.map((r) => `<div class="li"><span>${NOME[r.kind]}, con il ${fmtN(r.pct)}%</span><span class="mono">${fmtDay(r.t)} ${fmtTime(r.t)}</span></div>`).join("")
+    : '<p class="empty">Ancora nessun Boost acceso.</p>';
+}
+/* Boost accesi: dallo script (auto), dal pulsante della dashboard (manuale) oppure da fuori
+   (app Cozytouch o tasto sullo scaldabagno): in quel caso nessuno l'ha registrato, ma si vede
+   perché il Boost passa da spento a acceso senza una riga "boost_auto" / "boost_manuale". */
+function boostEvents() {
+  const out = []; let prevOn = null;
+  for (const r of S.storico) {
+    let kind = null;
+    if (r.azione === "boost_auto") kind = "auto";
+    else if (r.azione === "boost_manuale") kind = "manuale";
+    else if (r.boost && prevOn === false) kind = "app";
+    if (kind) out.push({ ...r, kind });
+    prevOn = r.boost;
+  }
+  return out;
 }
 function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
 function barChart(box, items, color, tipFn, highlightLast) {
