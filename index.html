@@ -629,7 +629,10 @@ function mergeLive() {
   const clean = {}; Object.entries(S.live).forEach(([k, v]) => { if (v != null) clean[k] = v; });
   if (clean.temperature) clean.temperature = Object.fromEntries(Object.entries(clean.temperature).filter(([, v]) => v != null));
   if (!S.stato) { S.stato = clean; return; }
-  if (new Date(clean.ora) >= new Date(S.stato.ora)) S.stato = { ...S.stato, ...clean, temperature: { ...(S.stato.temperature || {}), ...(clean.temperature || {}) } };
+  if (new Date(clean.ora) >= new Date(S.stato.ora)) {
+    S.stato = { ...S.stato, ...clean, temperature: { ...(S.stato.temperature || {}), ...(clean.temperature || {}) } };
+    if ("limite_boost" in S.live) S.stato.limite_boost = S.live.limite_boost; // anche quando e' null: il limite finito non deve restare
+  }
 }
 function applyLive(snap) { S.live = snap; mergeLive(); }
 let liveBusy = false;
@@ -887,7 +890,7 @@ function renderHome() {
   const heating = (s.potenza_w || 0) > 50;
   const sl = $("statusLine");
   if (s.disponibile === false) { sl.className = "statusline"; sl.innerHTML = ICON.info + "Lo scaldabagno non risponde"; }
-  else if (s.boost) { sl.className = "statusline hot"; sl.innerHTML = ICON.flame + "Boost acceso"; }
+  else if (s.boost) { sl.className = "statusline hot"; sl.innerHTML = ICON.flame + "Boost acceso" + (s.limite_boost ? " · " + limitText(s.limite_boost, null) : ""); }
   else if (heating) { sl.className = "statusline hot"; sl.innerHTML = ICON.flame + "Sta scaldando"; }
   else if (s.assenza) { sl.className = "statusline"; sl.innerHTML = ICON.vac + "In assenza"; }
   else { sl.className = "statusline"; sl.innerHTML = ICON.pause + "A riposo"; }
@@ -1010,22 +1013,51 @@ function timeSelect(id, value) {
   return `<span class="timepick"><select id="${id}H" aria-label="Ora">${hours}</select><b>:</b><select id="${id}M" aria-label="Minuti">${mins.map((x) => `<option value="${x}" ${x === mm ? "selected" : ""}>${String(x).padStart(2, "0")}</option>`).join("")}</select></span>`;
 }
 const editing = () => draftSlots().find((x) => x._id === S.editId);
+/* a cosa serve il limite: spegnere il Boost da solo dopo un tempo o a una certa percentuale */
+const BK_MIN = [30, 60, 90, 120, 180], BK_PCT = [60, 70, 80, 90];
+const minLabel = (m) => m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)} h ${m % 60}` : `${m / 60} h`;
+function limitText(l, s) {
+  if (!l) return "";
+  const parts = [];
+  if (l.fine) parts.push(`verso le ${fmtTime(new Date(l.fine))}`);
+  if (l.pct != null) parts.push(`quando arriva al ${fmtN(l.pct)}%${s && s.percentuale != null ? ` (adesso ${fmtN(s.percentuale)}%)` : ""}`);
+  return parts.join(" o ");
+}
 function sheetBoost() {
   const s = S.stato || {};
   if (s.boost) {
+    const lt = limitText(s.limite_boost, s);
     $("sheetTitle").textContent = "Il Boost è acceso";
-    $("sheetBody").innerHTML = `<p>Lo scaldabagno sta scaldando al massimo. Si spegne da solo quando il serbatoio è pieno.</p>
-      <p class="muted small">Adesso: ${fmtN(s.percentuale)}% di acqua calda.</p>
+    $("sheetBody").innerHTML = `<p>Lo scaldabagno sta scaldando al massimo. ${lt ? `Lo spengo ${lt}.` : "Si spegne da solo quando il serbatoio è pieno."}</p>
+      <p class="muted small">Adesso: ${fmtN(s.percentuale)}% di acqua calda.${lt ? " Il sistema controlla ogni 5 minuti, quindi lo spegnimento può arrivare con qualche minuto di ritardo." : ""}</p>
       <button class="btn hot block" type="button" id="bkOff">Spegni il Boost</button>`;
     $("bkOff").onclick = () => { closeSheet(); if (S.tab !== "casa") location.hash = "casa"; runCommand("spegni"); };
     return;
   }
   const n = s.litri_v40 != null ? Math.floor(s.litri_v40 / SHOWER_L) : showersAt(s.percentuale || 0);
+  const fast = !!fastCfg(); const mode = fast ? (S.bkMode || "pieno") : "pieno";
+  const chips = (arr, cur, fmtFn, attr) => `<div class="seg" role="group" style="flex-wrap:wrap">${arr.map((v) => `<button type="button" ${attr}="${v}" aria-pressed="${v === cur}">${fmtFn(v)}</button>`).join("")}</div>`;
   $("sheetTitle").textContent = "Accendere il Boost?";
-  $("sheetBody").innerHTML = `<p>Lo scaldabagno scalda al massimo, anche con la resistenza elettrica, finché il serbatoio è pieno. Poi si spegne da solo.</p>
+  $("sheetBody").innerHTML = `<p>Lo scaldabagno scalda al massimo, anche con la resistenza elettrica. Poi si spegne da solo.</p>
     <p class="muted small">Adesso: ${fmtN(s.percentuale)}% di acqua calda, circa ${docce(n)}. Consuma più corrente del normale.</p>
+    ${fast ? `<div class="q"><span class="ql">Fino a quando?</span>
+      <div class="seg" role="group" aria-label="Fino a quando">
+        <button type="button" data-bkmode="pieno" aria-pressed="${mode === "pieno"}">Pieno</button>
+        <button type="button" data-bkmode="tempo" aria-pressed="${mode === "tempo"}">Durata</button>
+        <button type="button" data-bkmode="pct" aria-pressed="${mode === "pct"}">Percentuale</button>
+      </div>
+      ${mode === "tempo" ? chips(BK_MIN, S.bkMin || 60, minLabel, "data-bkmin") : ""}
+      ${mode === "pct" ? chips(BK_PCT, S.bkPct || 80, (v) => v + "%", "data-bkpct") : ""}
+      ${mode !== "pieno" ? `<span class="muted small">Il sistema controlla ogni 5 minuti, quindi lo spegnimento non sarà precisissimo: è solo di riferimento.</span>` : ""}
+    </div>` : ""}
     <button class="btn hot block" type="button" id="bkYes">Accendi il Boost</button>`;
-  $("bkYes").onclick = () => { closeSheet(); if (S.tab !== "casa") location.hash = "casa"; runCommand("boost"); };
+  $("sheetBody").querySelectorAll("[data-bkmode]").forEach((b) => b.onclick = () => { S.bkMode = b.dataset.bkmode; sheetBoost(); });
+  $("sheetBody").querySelectorAll("[data-bkmin]").forEach((b) => b.onclick = () => { S.bkMin = Number(b.dataset.bkmin); sheetBoost(); });
+  $("sheetBody").querySelectorAll("[data-bkpct]").forEach((b) => b.onclick = () => { S.bkPct = Number(b.dataset.bkpct); sheetBoost(); });
+  $("bkYes").onclick = () => {
+    const limit = mode === "tempo" ? { minuti: S.bkMin || 60 } : mode === "pct" ? { fino_a: S.bkPct || 80 } : null;
+    closeSheet(); if (S.tab !== "casa") location.hash = "casa"; runCommand("boost", limit);
+  };
 }
 
 function sheetSlot() {
@@ -1744,7 +1776,7 @@ function sheetDetails() {
 function renderAll() { renderHome(); renderProgram(); renderSettings(); if (S.tab === "statistiche") { renderLevel(); renderCons(); } if (S.tab === "casa") renderHomeChart(); }
 
 /* ================= azioni ================= */
-async function runCommand(modalita) {
+async function runCommand(modalita, limit) {
   if (S.busy) return; S.busy = true;
   const b = $("btnBoost"); b.disabled = true; $("fabBoost").disabled = true; $("btnRefresh").classList.add("spin");
   const cmd = modalita === "boost" || modalita === "spegni";
@@ -1754,12 +1786,15 @@ async function runCommand(modalita) {
   try {
     if (fastCfg() && (modalita === "stato" || cmd)) {
       try {
-        const snap = cmd ? await fastCall("/boost", { on: modalita === "boost" }) : await fastCall("/stato");
+        const snap = cmd ? await fastCall("/boost", { on: modalita === "boost", ...(limit || {}) }) : await fastCall("/stato");
         applyLive(snap); S.busy = false; renderAll();
-        if (modalita === "boost") setStatus("actStatus", snap.boost ? "Boost acceso: sta scaldando al massimo." : "Comando inviato, ma lo scaldabagno non risulta ancora in Boost.", snap.boost ? "ok" : "err");
+        if (modalita === "boost") setStatus("actStatus", snap.boost ? "Boost acceso: sta scaldando al massimo." + (snap.limite_boost ? ` Lo spengo ${limitText(snap.limite_boost, snap)}.` : "") : "Comando inviato, ma lo scaldabagno non risulta ancora in Boost.", snap.boost ? "ok" : "err");
         if (modalita === "spegni") setStatus("actStatus", !snap.boost ? "Boost spento." : "Comando inviato, ma lo scaldabagno risulta ancora in Boost.", !snap.boost ? "ok" : "err");
         return;
-      } catch (e) { if (cmd) setStatus("actStatus", "Collegamento veloce non disponibile, passo da GitHub…"); }
+      } catch (e) {
+        if (limit) { S.busy = false; $("btnRefresh").classList.remove("spin"); renderHome(); return setStatus("actStatus", "Il collegamento veloce non risponde: durata e percentuale non si possono usare col metodo di riserva. Riprova, o accendi il Boost senza limite.", "err"); }
+        if (cmd) setStatus("actStatus", "Collegamento veloce non disponibile, passo da GitHub…");
+      }
     }
     const run = await dispatch(modalita, {}, (t) => { if (cmd) setStatus("actStatus", t); });
     await loadAll(); S.busy = false; renderAll();
