@@ -323,6 +323,12 @@ input[type="text"] { width: 100%; }
 .kpis .kpi { background: var(--surface); box-shadow: var(--shadow); }
 .kpi .k { font-size: 0.78rem; font-weight: 600; color: var(--muted); white-space: nowrap; align-self: start; display: flex; align-items: center; min-height: 20px; }
 .kpi .k.kp { display: inline-flex; align-items: center; gap: 2px; }
+.cmp { padding: 16px 18px; display: grid; gap: 10px; }
+.cmpgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cmpgrid > div { display: grid; gap: 2px; }
+.cmpgrid .k { font-size: 0.78rem; color: var(--muted); }
+.cmpgrid .v { font-family: var(--display); font-weight: 800; font-size: 1.25rem; white-space: nowrap; }
+.cmpgrid small { font-size: 0.78rem; color: var(--muted); }
 .kpi .k.kp .ic { width: 15px; height: 15px; }
 .kpi .v .u { font-size: .78rem; font-weight: 700; letter-spacing: 0; }
 .kpi .v .x { font-size: .72rem; font-weight: 700; color: var(--muted); letter-spacing: 0; }
@@ -332,6 +338,9 @@ input[type="text"] { width: 100%; }
 .list { display: grid; padding: 6px 0; }
 .list .li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 20px; font-size: 0.95rem; }
 .list .li .evl { display: flex; align-items: center; gap: 12px; }
+.list .li .evt { display: grid; gap: 1px; line-height: 1.25; }
+.list .li .evt b { font-weight: 700; }
+.list .li .evt small { color: var(--muted); font-size: 0.82rem; }
 .list .li .evi { width: 30px; height: 30px; border-radius: 50%; background: var(--hot-soft, rgba(240,110,70,.14)); color: var(--hot); display: grid; place-items: center; flex: none; }
 .list .li .evi .ic { width: 16px; height: 16px; }
 .list .li .mono { color: var(--muted); font-size: 0.88rem; white-space: nowrap; }
@@ -511,6 +520,7 @@ input[type="text"] { width: 100%; }
             <div id="csChart"></div>
           </div>
           <div class="kpis" id="kpis"></div>
+          <div id="boostCmp"></div>
           <p class="note" id="consNote"></p>
         </div>
       </section>
@@ -1255,21 +1265,37 @@ function renderLevel() {
   const ev = boostEvents().slice(-8).reverse();
   const NOME = { auto: "Automatico", manuale: "Manuale, dalla dashboard", app: "Manuale, da app o scaldabagno" };
   const IC = { auto: ICON.auto, manuale: ICON.tap, app: ICON.phone };
-  $("events").innerHTML = ev.length ? ev.map((r) => `<div class="li"><span class="evl"><span class="evi" role="img" aria-label="${NOME[r.kind]}" title="${NOME[r.kind]}">${IC[r.kind]}</span>Con il ${fmtN(r.pct)}%</span><span class="mono">${fmtDay(r.t)} ${fmtTime(r.t)}</span></div>`).join("")
-    : '<p class="empty">Ancora nessun Boost acceso.</p>';
+  const dur = (min) => min < 60 ? `${Math.max(1, Math.round(min))} min` : `${Math.floor(min / 60)} h${Math.round(min % 60) ? " " + String(Math.round(min % 60)).padStart(2, "0") : ""}`;
+  $("events").innerHTML = ev.length ? ev.map((r) => {
+    const kwh = r.kwh == null ? "" : ` · ${fmtN(r.kwh, 1)} kWh`;
+    const head = r.live ? `In corso${kwh}` : `${dur(r.min)}${kwh}`;
+    const sub = r.live ? `dal ${fmtN(r.pct)}% (ora ${fmtN(r.pctEnd)}%)` : `dal ${fmtN(r.pct)}% al ${fmtN(r.pctEnd)}%`;
+    return `<div class="li"><span class="evl"><span class="evi" role="img" aria-label="${NOME[r.kind]}" title="${NOME[r.kind]}">${IC[r.kind]}</span><span class="evt"><b>${head}</b><small>${sub}</small></span></span><span class="mono">${fmtDay(r.t)} ${fmtTime(r.t)}</span></div>`;
+  }).join("") : '<p class="empty">Ancora nessun Boost acceso.</p>';
 }
 /* Boost accesi: dallo script (auto), dal pulsante della dashboard (manuale) oppure da fuori
    (app Cozytouch o tasto sullo scaldabagno): in quel caso nessuno l'ha registrato, ma si vede
-   perché il Boost passa da spento a acceso senza una riga "boost_auto" / "boost_manuale". */
+   perché il Boost passa da spento a acceso senza una riga "boost_auto" / "boost_manuale".
+   Per ognuno: quanto è durato, da che percentuale a quale e i kWh (la potenza letta ogni ~10 minuti,
+   sommata nel tempo: è una stima). */
 function boostEvents() {
-  const out = []; let prevOn = null;
-  for (const r of S.storico) {
-    let kind = null;
+  const rows = S.storico, out = []; let prevOn = null;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i]; let kind = null;
     if (r.azione === "boost_auto") kind = "auto";
     else if (r.azione === "boost_manuale") kind = "manuale";
     else if (r.boost && prevOn === false) kind = "app";
-    if (kind) out.push({ ...r, kind });
     prevOn = r.boost;
+    if (!kind) continue;
+    let j = i + 1; while (j < rows.length && rows[j].boost) j++;
+    const live = j >= rows.length, endRow = live ? rows[rows.length - 1] : rows[j];
+    let kwh = 0, seen = false;
+    for (let k = i; k < j && k + 1 < rows.length; k++) {
+      const a = rows[k].power, b = rows[k + 1].power; if (a == null && b == null) continue;
+      const h = Math.min(rows[k + 1].t - rows[k].t, 20 * 60000) / 3600000; // intervalli lunghi (buchi nei dati) non contano oltre 20 minuti
+      kwh += ((a ?? b) + (b ?? a)) / 2 * h / 1000; seen = true;
+    }
+    out.push({ ...r, kind, live, pctEnd: endRow.pct, min: Math.max(0, (endRow.t - r.t) / 60000), kwh: seen ? kwh : null });
   }
   return out;
 }
@@ -1319,6 +1345,22 @@ function trendChip(key, what) {
   return `<span class="trend" title="Più del solito: già sopra la media di un giorno intero (${fmtN(u.avg, key === "kwh" ? 1 : 0)} ${key === "kwh" ? "kWh" : "L"})">${ICON.up}${u.pct ? "+" + u.pct + "%" : "oltre"}</span>`;
 }
 const U = (u) => `<span class="u"> ${u}</span>`;
+/* giorni con Boost contro giorni senza, sui kWh giornalieri di Cozytouch (quelli precisi) */
+function renderBoostCompare(fullDays) {
+  const box = $("boostCmp");
+  const perDay = new Map();
+  S.storico.forEach((r) => { const y = romeParts(r.t).ymd, e = perDay.get(y) || { n: 0, boost: false }; e.n++; e.boost = e.boost || r.boost; perDay.set(y, e); });
+  const withB = [], without = [];
+  fullDays.forEach((d) => { const e = perDay.get(d.data); if (!e || e.n < 30 || d.kwh == null) return; (e.boost ? withB : without).push(d.kwh); });
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  if (withB.length < 2 || without.length < 2) { box.innerHTML = withB.length + without.length ? `<div class="card hint"><p class="muted small">Per confrontare i giorni con e senza Boost servono almeno 2 giorni di ciascun tipo (ora: ${withB.length} con, ${without.length} senza).</p></div>` : ""; return; }
+  const a = mean(withB), b = mean(without), diff = a - b;
+  box.innerHTML = `<div class="card cmp"><p class="eyebrow">Giorni con Boost e senza</p>
+    <div class="cmpgrid"><div><span class="k">Con Boost</span><span class="v">${fmtN(a, 1)}${U("kWh")}</span><small>${withB.length} giorni</small></div>
+    <div><span class="k">Senza Boost</span><span class="v">${fmtN(b, 1)}${U("kWh")}</span><small>${without.length} giorni</small></div>
+    <div><span class="k">Differenza</span><span class="v">${diff >= 0 ? "+" : "−"}${fmtN(Math.abs(diff), 1)}${U("kWh")}</span><small>al giorno</small></div></div>
+    <p class="muted small">Media dei kWh al giorno. Conta anche quanta acqua si è usata e il freddo di quei giorni, quindi è un'indicazione, non una misura esatta.</p></div>`;
+}
 function renderCons() {
   if (S.tab !== "statistiche" || S.stat === "livello") return;
   const pr = price(); const key = S.cons; const isL = key === "litri";
@@ -1334,6 +1376,7 @@ function renderCons() {
       <div class="card kpi"><span class="k">Oggi${trendChip("litri")}</span><span class="v">${(() => { const t = all.find((d) => d.data === todayYmd); return t && t.litri != null ? fmtN(t.litri, 0) + U("L") : "–"; })()}</span></div>
       <div class="card kpi"><span class="k">Media/giorno</span><span class="v">${fmtN(a30, 0)}${U("L")}</span></div>
       <div class="card kpi"><span class="k kp">${ICON.person}/giorno</span><span class="v">${a30 == null ? "–" : fmtN(a30 / persone, 0) + U("L")}<span class="x"> × ${persone}</span></span></div>`;
+    $("boostCmp").innerHTML = "";
     const uw = usualCheck("litri");
     $("consNote").textContent = (uw ? `Oggi stai usando più acqua calda del solito: hai già superato un giorno normale${uw.pct ? " (+" + uw.pct + "%)" : ""}. ` : "") + `Litri di acqua calda (a 40 °C) usati in casa: docce, rubinetti, lavandini ed eventuali elettrodomestici collegati all'acqua calda. Oggi = da mezzanotte a ora. Media e persona: litri al giorno, sugli ultimi 30 giorni (× ${persone} = persone in casa).`;
   } else {
@@ -1344,6 +1387,7 @@ function renderCons() {
       <div class="card kpi"><span class="k">Oggi${trendChip("kwh")}</span><span class="v">${tk && tk.kwh != null ? fmtN(tk.kwh, 1) + U("kWh") : "–"}</span></div>
       <div class="card kpi"><span class="k">Media/giorno</span><span class="v">${a30 == null ? "–" : fmtN(a30, 1) + U("kWh")}</span></div>
       <div class="card kpi"><span class="k">Costo/mese</span><span class="v">${a30 == null ? "–" : "≈ " + fmtN(a30 * 30 * pr, 0) + U("€")}</span></div>`;
+    renderBoostCompare(full);
     const uk = usualCheck("kwh");
     $("consNote").textContent = (uk ? `Oggi stai usando più corrente del solito: hai già superato un giorno normale${uk.pct ? " (+" + uk.pct + "%)" : ""}. ` : "") + `Oggi = da mezzanotte a ora. Media: kWh al giorno, sugli ultimi 30 giorni. Costo/mese: la media per 30 giorni, a ${fmtN(pr, 2)} €/kWh (il prezzo si cambia nelle Impostazioni). Per scaldare 100 L servono circa ${fmtN(per100, 1)} kWh: in estate la pompa di calore rende di più e il numero scende.`;
   }
