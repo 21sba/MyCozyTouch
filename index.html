@@ -989,11 +989,7 @@ function sheetBoost() {
     $("sheetTitle").textContent = "Il Boost è acceso";
     $("sheetBody").innerHTML = `<p>Lo scaldabagno sta scaldando al massimo. Si spegne da solo quando il serbatoio è pieno.</p>
       <p class="muted small">Adesso: ${fmtN(s.percentuale)}% di acqua calda.</p>
-      <div class="row" style="justify-content:stretch;gap:10px">
-        <button class="btn quiet" type="button" id="bkOk" style="flex:1">Lascialo acceso</button>
-        <button class="btn hot" type="button" id="bkOff" style="flex:2">Spegni il Boost</button>
-      </div>`;
-    $("bkOk").onclick = closeSheet;
+      <button class="btn hot block" type="button" id="bkOff">Spegni il Boost</button>`;
     $("bkOff").onclick = () => { closeSheet(); if (S.tab !== "casa") location.hash = "casa"; runCommand("spegni"); };
     return;
   }
@@ -1001,11 +997,7 @@ function sheetBoost() {
   $("sheetTitle").textContent = "Accendere il Boost?";
   $("sheetBody").innerHTML = `<p>Lo scaldabagno scalda al massimo, anche con la resistenza elettrica, finché il serbatoio è pieno. Poi si spegne da solo.</p>
     <p class="muted small">Adesso: ${fmtN(s.percentuale)}% di acqua calda, circa ${docce(n)}. Consuma più corrente del normale.</p>
-    <div class="row" style="justify-content:stretch;gap:10px">
-      <button class="btn quiet" type="button" id="bkNo" style="flex:1">Annulla</button>
-      <button class="btn hot" type="button" id="bkYes" style="flex:2">Accendi il Boost</button>
-    </div>`;
-  $("bkNo").onclick = closeSheet;
+    <button class="btn hot block" type="button" id="bkYes">Accendi il Boost</button>`;
   $("bkYes").onclick = () => { closeSheet(); if (S.tab !== "casa") location.hash = "casa"; runCommand("boost"); };
 }
 
