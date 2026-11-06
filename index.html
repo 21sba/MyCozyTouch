@@ -858,7 +858,7 @@ function renderHome() {
   else if (s.assenza) { sl.className = "statusline"; sl.innerHTML = ICON.vac + "In assenza"; }
   else { sl.className = "statusline"; sl.innerHTML = ICON.pause + "A riposo"; }
   drawTank(s.percentuale, heating || s.boost);
-  const label = s.boost ? "Boost già acceso" : "Accendi il Boost";
+  const label = s.boost ? "Boost acceso · tocca per spegnerlo" : "Accendi il Boost";
   $("boostLabel").textContent = label; $("fabBoost").setAttribute("aria-label", label);
   $("btnBoost").disabled = $("fabBoost").disabled = S.busy;
   $("fabBoost").classList.toggle("on", !!s.boost);
@@ -982,8 +982,13 @@ function sheetBoost() {
     $("sheetTitle").textContent = "Il Boost è acceso";
     $("sheetBody").innerHTML = `<p>Lo scaldabagno sta scaldando al massimo. Si spegne da solo quando il serbatoio è pieno.</p>
       <p class="muted small">Adesso: ${fmtN(s.percentuale)}% di acqua calda.</p>
-      <button class="btn primary block" type="button" id="bkOk">Ok</button>`;
-    $("bkOk").onclick = closeSheet; return;
+      <div class="row" style="justify-content:stretch;gap:10px">
+        <button class="btn quiet" type="button" id="bkOk" style="flex:1">Lascialo acceso</button>
+        <button class="btn hot" type="button" id="bkOff" style="flex:2">Spegni il Boost</button>
+      </div>`;
+    $("bkOk").onclick = closeSheet;
+    $("bkOff").onclick = () => { closeSheet(); if (S.tab !== "casa") location.hash = "casa"; runCommand("spegni"); };
+    return;
   }
   const n = s.litri_v40 != null ? Math.floor(s.litri_v40 / SHOWER_L) : showersAt(s.percentuale || 0);
   $("sheetTitle").textContent = "Accendere il Boost?";
@@ -1649,21 +1654,25 @@ function renderAll() { renderHome(); renderProgram(); renderSettings(); if (S.ta
 async function runCommand(modalita) {
   if (S.busy) return; S.busy = true;
   const b = $("btnBoost"); b.disabled = true; $("fabBoost").disabled = true; $("btnRefresh").classList.add("spin");
+  const cmd = modalita === "boost" || modalita === "spegni";
   if (modalita === "boost") $("boostLabel").textContent = "Accendo…";
-  setStatus("actStatus", modalita === "boost" ? "Invio la richiesta…" : "");
+  if (modalita === "spegni") $("boostLabel").textContent = "Spengo…";
+  setStatus("actStatus", cmd ? "Invio la richiesta…" : "");
   try {
-    if (fastCfg() && (modalita === "stato" || modalita === "boost")) {
+    if (fastCfg() && (modalita === "stato" || cmd)) {
       try {
-        const snap = modalita === "boost" ? await fastCall("/boost", { on: true }) : await fastCall("/stato");
+        const snap = cmd ? await fastCall("/boost", { on: modalita === "boost" }) : await fastCall("/stato");
         applyLive(snap); S.busy = false; renderAll();
         if (modalita === "boost") setStatus("actStatus", snap.boost ? "Boost acceso: sta scaldando al massimo." : "Comando inviato, ma lo scaldabagno non risulta ancora in Boost.", snap.boost ? "ok" : "err");
+        if (modalita === "spegni") setStatus("actStatus", !snap.boost ? "Boost spento." : "Comando inviato, ma lo scaldabagno risulta ancora in Boost.", !snap.boost ? "ok" : "err");
         return;
-      } catch (e) { if (modalita === "boost") setStatus("actStatus", "Collegamento veloce non disponibile, passo da GitHub…"); }
+      } catch (e) { if (cmd) setStatus("actStatus", "Collegamento veloce non disponibile, passo da GitHub…"); }
     }
-    const run = await dispatch(modalita, {}, (t) => { if (modalita === "boost") setStatus("actStatus", t); });
+    const run = await dispatch(modalita, {}, (t) => { if (cmd) setStatus("actStatus", t); });
     await loadAll(); S.busy = false; renderAll();
     if (run.conclusion !== "success") setStatus("actStatus", "Qualcosa non ha funzionato. Riprova tra poco.", "err");
     else if (modalita === "boost") setStatus("actStatus", S.stato && S.stato.boost ? "Boost acceso: sta scaldando al massimo." : "Comando inviato: lo vedrai acceso al prossimo aggiornamento.", "ok");
+    else if (modalita === "spegni") setStatus("actStatus", S.stato && !S.stato.boost ? "Boost spento." : "Comando inviato: lo vedrai spento al prossimo aggiornamento.", "ok");
   } catch (e) { setStatus("actStatus", e.message, "err"); }
   finally { S.busy = false; $("btnRefresh").classList.remove("spin"); renderHome(); }
 }
