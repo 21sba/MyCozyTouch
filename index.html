@@ -266,6 +266,23 @@ a { color: var(--ink); }
 .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; }
 .toggle .autodot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; background: var(--good); vertical-align: 1px; }
 .toggle.off .autodot { background: var(--muted); }
+.bk { display: grid; gap: 10px; padding: 14px 16px; border-radius: 24px; background: var(--surface); box-shadow: var(--shadow); }
+.bk .bkh { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bk .bkh b { font-weight: 700; }
+.bk .bkh .sub { display: block; font-size: 0.82rem; color: var(--muted); font-weight: 500; }
+.bk .bkv { font-family: var(--display); font-weight: 800; font-size: 2.1rem; line-height: 1; color: var(--hot); white-space: nowrap; text-align: right; }
+.bk .bkv small { font-size: 1rem; font-weight: 700; margin-left: 2px; }
+.ruler { user-select: none; -webkit-user-select: none; position: relative; height: 96px; border-radius: 22px; background: var(--sunk); outline: none; }
+.ruler:focus-visible { box-shadow: 0 0 0 3px var(--hot-soft), 0 0 0 4px var(--hot); }
+.ruler .rscroll { position: absolute; inset: 0 0 20px 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; scroll-snap-type: x mandatory; display: flex; align-items: flex-end; padding: 0 calc(50% - var(--tw) / 2); -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); cursor: grab; touch-action: pan-x; }
+.ruler .rscroll::-webkit-scrollbar { display: none; }
+.ruler.drag .rscroll { scroll-snap-type: none; cursor: grabbing; }
+.ruler .tk { flex: none; width: var(--tw); height: 100%; position: relative; scroll-snap-align: center; }
+.ruler .tk i { position: absolute; left: 50%; bottom: 10px; width: 3px; height: 30px; margin-left: -1.5px; border-radius: 2px; background: var(--muted); opacity: .38; transition: background .12s, opacity .12s; }
+.ruler .tk.on i { background: var(--hot); opacity: 1; }
+.ruler .tk em { position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%); font-style: normal; font-size: 0.82rem; font-weight: 700; color: var(--muted); white-space: nowrap; transition: color .12s; }
+.ruler .tk.on em { color: var(--hot); }
+.ruler .ptr { position: absolute; left: 50%; bottom: 3px; margin-left: -8px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 13px solid var(--hot); border-radius: 2px; pointer-events: none; }
 .switch { position: relative; width: 54px; height: 32px; flex: none; }
 .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
 .switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--track); transition: background .2s; pointer-events: none; }
@@ -1013,8 +1030,7 @@ function timeSelect(id, value) {
   return `<span class="timepick"><select id="${id}H" aria-label="Ora">${hours}</select><b>:</b><select id="${id}M" aria-label="Minuti">${mins.map((x) => `<option value="${x}" ${x === mm ? "selected" : ""}>${String(x).padStart(2, "0")}</option>`).join("")}</select></span>`;
 }
 const editing = () => draftSlots().find((x) => x._id === S.editId);
-/* a cosa serve il limite: spegnere il Boost da solo dopo un tempo o a una certa percentuale */
-const BK_MIN = [30, 60, 90, 120, 180], BK_PCT = [60, 70, 80, 90];
+/* Boost con limite: dopo un tempo e/o a una certa percentuale (vale quello che arriva prima) */
 const minLabel = (m) => m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)} h ${m % 60}` : `${m / 60} h`;
 function limitText(l, s) {
   if (!l) return "";
@@ -1022,6 +1038,33 @@ function limitText(l, s) {
   if (l.fine) parts.push(`verso le ${fmtTime(new Date(l.fine))}`);
   if (l.pct != null) parts.push(`quando arriva al ${fmtN(l.pct)}%${s && s.percentuale != null ? ` (adesso ${fmtN(s.percentuale)}%)` : ""}`);
   return parts.join(" o ");
+}
+/* righello a scorrimento (come il timer dell'iPhone): si trascina, il numero sotto il triangolo è il valore */
+function makeRuler(box, o) {
+  const n = Math.round((o.max - o.min) / o.step) + 1, tw = o.px;
+  box.classList.add("ruler"); box.style.setProperty("--tw", tw + "px");
+  box.setAttribute("role", "slider"); box.tabIndex = 0;
+  box.setAttribute("aria-valuemin", o.min); box.setAttribute("aria-valuemax", o.max); box.setAttribute("aria-label", o.label);
+  box.innerHTML = `<div class="rscroll">${Array.from({ length: n }, (_, i) => { const v = o.min + i * o.step; return `<div class="tk" data-i="${i}"><i></i>${o.major(v) ? `<em>${o.tick(v)}</em>` : ""}</div>`; }).join("")}</div><div class="ptr"></div>`;
+  const sc = box.querySelector(".rscroll"), tks = [...sc.querySelectorAll(".tk")];
+  let cur = -1;
+  const idxNow = () => Math.max(0, Math.min(n - 1, Math.round(sc.scrollLeft / tw)));
+  const paint = (i) => { if (i === cur) return; cur = i; tks.forEach((t, k) => t.classList.toggle("on", k <= i)); const v = o.min + i * o.step; box.setAttribute("aria-valuenow", v); o.onChange(v); };
+  const setIdx = (i, smooth) => { i = Math.max(0, Math.min(n - 1, i)); sc.scrollTo({ left: i * tw, behavior: smooth ? "smooth" : "auto" }); paint(i); };
+  let raf = 0; sc.addEventListener("scroll", () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => paint(idxNow())); });
+  sc.addEventListener("click", (e) => { const t = e.target.closest(".tk"); if (t && !box._moved) setIdx(Number(t.dataset.i), true); });
+  box.addEventListener("keydown", (e) => { const k = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key]; if (k) { e.preventDefault(); setIdx(idxNow() + k, true); } });
+  // mouse (sul telefono scorre già da solo col dito)
+  sc.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse") return;
+    const x0 = e.clientX, s0 = sc.scrollLeft; box._moved = false; box.classList.add("drag");
+    const mv = (ev) => { if (Math.abs(ev.clientX - x0) > 3) box._moved = true; sc.scrollLeft = s0 - (ev.clientX - x0); };
+    const up = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); box.classList.remove("drag"); setIdx(idxNow(), true); setTimeout(() => { box._moved = false; }, 0); };
+    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
+  });
+  sc.addEventListener("wheel", (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); sc.scrollLeft += e.deltaY; } }, { passive: false });
+  const start = Math.round((o.value - o.min) / o.step);
+  requestAnimationFrame(() => setIdx(start, false));
 }
 function sheetBoost() {
   const s = S.stato || {};
@@ -1035,28 +1078,37 @@ function sheetBoost() {
     return;
   }
   const n = s.litri_v40 != null ? Math.floor(s.litri_v40 / SHOWER_L) : showersAt(s.percentuale || 0);
-  const fast = !!fastCfg(); const mode = fast ? (S.bkMode || "pieno") : "pieno";
-  const chips = (arr, cur, fmtFn, attr) => `<div class="seg" role="group" style="flex-wrap:wrap">${arr.map((v) => `<button type="button" ${attr}="${v}" aria-pressed="${v === cur}">${fmtFn(v)}</button>`).join("")}</div>`;
+  const fast = !!fastCfg(), now = Math.round(s.percentuale || 0);
+  const pMin = Math.min(95, Math.floor(now / 5) * 5 + 5), pOk = now < 95; // sotto l'attuale non ha senso
+  if (S.bkMin == null) S.bkMin = 60;
+  S.bkPct = Math.max(pMin, Math.min(100, S.bkPct == null ? Math.max(pMin, 80) : S.bkPct));
+  const tOn = fast && !!S.bkTimeOn, pOn = fast && pOk && !!S.bkPctOn;
+  const block = (id, title, sub, on, can, valId) => `<div class="bk"><div class="bkh"><span><b>${title}</b><span class="sub">${sub}</span></span>
+      ${on ? `<span class="bkv" id="${valId}"></span>` : ""}<label class="switch"><input type="checkbox" id="${id}" ${on ? "checked" : ""} ${can ? "" : "disabled"} aria-label="${title}"><span></span></label></div>${on ? `<div id="${id}R"></div>` : ""}</div>`;
   $("sheetTitle").textContent = "Accendere il Boost?";
-  $("sheetBody").innerHTML = `<p>Lo scaldabagno scalda al massimo, anche con la resistenza elettrica. Poi si spegne da solo.</p>
+  $("sheetBody").innerHTML = `<p>Lo scaldabagno scalda al massimo, anche con la resistenza elettrica.</p>
     <p class="muted small">Adesso: ${fmtN(s.percentuale)}% di acqua calda, circa ${docce(n)}. Consuma più corrente del normale.</p>
-    ${fast ? `<div class="q"><span class="ql">Fino a quando?</span>
-      <div class="seg" role="group" aria-label="Fino a quando">
-        <button type="button" data-bkmode="pieno" aria-pressed="${mode === "pieno"}">Pieno</button>
-        <button type="button" data-bkmode="tempo" aria-pressed="${mode === "tempo"}">Durata</button>
-        <button type="button" data-bkmode="pct" aria-pressed="${mode === "pct"}">Percentuale</button>
-      </div>
-      ${mode === "tempo" ? chips(BK_MIN, S.bkMin || 60, minLabel, "data-bkmin") : ""}
-      ${mode === "pct" ? chips(BK_PCT, S.bkPct || 80, (v) => v + "%", "data-bkpct") : ""}
-      ${mode !== "pieno" ? `<span class="muted small">Il sistema controlla ogni 5 minuti, quindi lo spegnimento non sarà precisissimo: è solo di riferimento.</span>` : ""}
-    </div>` : ""}
+    ${fast ? `${block("bkT", "Per un tempo", tOn ? "Dopo questo tempo" : "Nessun limite", tOn, true, "bkTV")}
+    ${block("bkP", "Fino a una percentuale", pOk ? (pOn ? "Quando arriva qui" : "Nessun limite") : "Già quasi al massimo", pOn, pOk, "bkPV")}
+    <p class="muted small" id="bkSum"></p>` : `<p class="muted small">Si spegne da solo quando il serbatoio è pieno. Per scegliere durata o percentuale serve il collegamento veloce.</p>`}
     <button class="btn hot block" type="button" id="bkYes">Accendi il Boost</button>`;
-  $("sheetBody").querySelectorAll("[data-bkmode]").forEach((b) => b.onclick = () => { S.bkMode = b.dataset.bkmode; sheetBoost(); });
-  $("sheetBody").querySelectorAll("[data-bkmin]").forEach((b) => b.onclick = () => { S.bkMin = Number(b.dataset.bkmin); sheetBoost(); });
-  $("sheetBody").querySelectorAll("[data-bkpct]").forEach((b) => b.onclick = () => { S.bkPct = Number(b.dataset.bkpct); sheetBoost(); });
+  const sum = () => {
+    const el = $("bkSum"); if (!el) return;
+    const t = tOn ? `dopo ${minLabel(S.bkMin)}` : "", p = pOn ? `quando l'acqua calda arriva al ${S.bkPct}%` : "";
+    el.textContent = !tOn && !pOn ? "Si spegne da solo quando il serbatoio è pieno." : `Si spegne ${[t, p].filter(Boolean).join(" oppure ")}${tOn && pOn ? ", quello che succede prima" : ""}. Il sistema controlla ogni 5 minuti, quindi non sarà precisissimo: è solo di riferimento.`;
+  };
+  sum();
+  if (fast) {
+    $("bkT").onchange = (e) => { S.bkTimeOn = e.target.checked; sheetBoost(); };
+    $("bkP").onchange = (e) => { S.bkPctOn = e.target.checked; sheetBoost(); };
+  }
+  if (tOn) makeRuler($("bkTR"), { min: 10, max: 360, step: 5, value: S.bkMin, px: 14, label: "Durata del Boost", major: (v) => v % 30 === 0, tick: (v) => v < 60 ? v : v % 60 ? `${Math.floor(v / 60)}h${v % 60}` : `${v / 60}h`,
+    onChange: (v) => { S.bkMin = v; const e = $("bkTV"); if (e) e.innerHTML = v < 60 ? `${v}<small>min</small>` : v % 60 ? `${Math.floor(v / 60)}<small>h</small> ${v % 60}<small>min</small>` : `${v / 60}<small>h</small>`; sum(); } });
+  if (pOn) makeRuler($("bkPR"), { min: pMin, max: 100, step: 5, value: S.bkPct, px: 22, label: "Percentuale di acqua calda", major: (v) => v % 10 === 0 || v === pMin, tick: (v) => v + "%",
+    onChange: (v) => { S.bkPct = v; const e = $("bkPV"); if (e) e.innerHTML = `${v}<small>%</small>`; sum(); } });
   $("bkYes").onclick = () => {
-    const limit = mode === "tempo" ? { minuti: S.bkMin || 60 } : mode === "pct" ? { fino_a: S.bkPct || 80 } : null;
-    closeSheet(); if (S.tab !== "casa") location.hash = "casa"; runCommand("boost", limit);
+    const limit = {}; if (tOn) limit.minuti = S.bkMin; if (pOn) limit.fino_a = S.bkPct;
+    closeSheet(); if (S.tab !== "casa") location.hash = "casa"; runCommand("boost", Object.keys(limit).length ? limit : null);
   };
 }
 
