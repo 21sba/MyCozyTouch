@@ -1557,7 +1557,7 @@ function sheetFast() {
     ${c ? '<button class="btn" type="button" id="fOff">Disattiva</button>' : ""}
     <p class="status" id="fStatus" role="status" aria-live="polite"></p>
     ${c ? `<hr style="border:0;border-top:1.5px solid var(--line);margin:6px 0">
-    <p class="muted small"><b>Controllo ogni 10 minuti.</b> ${S.fromWorker ? (S.workerComanda ? "Il Worker controlla da solo lo scaldabagno e comanda il Boost." : "Il Worker sta solo osservando: decide ma non comanda (c'\u00e8 ancora GitHub).") : "Il Worker non ha ancora raccolto dati."}</p>
+    <p class="muted small"><b>Controllo ogni 5 minuti.</b> ${S.fromWorker ? (S.workerComanda ? "Il Worker controlla da solo lo scaldabagno e comanda il Boost." : "Il Worker sta solo osservando: decide ma non comanda (c'\u00e8 ancora GitHub).") : "Il Worker non ha ancora raccolto dati."}</p>
     <button class="btn" type="button" id="fImport">Porta qui lo storico di GitHub</button>
     <p class="status" id="fImpStatus" role="status" aria-live="polite"></p>` : ""}`;
   $("fSave").onclick = async () => {
