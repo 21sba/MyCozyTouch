@@ -525,7 +525,8 @@ input[type="text"] { width: 100%; }
           </div>
           <div class="card chartbox" id="lvBox">
             <div id="lvChart"></div>
-            <p class="small muted" style="padding:0 8px 2px;display:flex;flex-wrap:wrap;gap:4px 16px"><span><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:var(--hot);vertical-align:middle;margin:0 2px 2px"></span> Boost acceso</span><span id="lvLegMin"><span style="display:inline-block;width:14px;height:2px;border-radius:1px;background:var(--ink);opacity:.28;vertical-align:middle;margin:0 2px 2px"></span> Minimo della fascia</span></p>
+            <p class="small muted" style="padding:0 8px 2px;display:flex;flex-wrap:wrap;gap:4px 16px"><span><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:var(--hot);vertical-align:middle;margin:0 2px 2px"></span> Boost acceso</span><button type="button" id="lvLegMin" aria-expanded="false" style="border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer"><span style="display:inline-block;width:14px;height:2px;border-radius:1px;background:var(--ink);opacity:.28;vertical-align:middle;margin:0 2px 2px"></span> Livello da tenere <span aria-hidden="true" style="opacity:.6">ⓘ</span></button></p>
+            <p class="small muted" id="lvLegNote" style="padding:0 8px 4px" hidden>Se l'acqua calda scende sotto questa linea, il programma accende il Boost. Cambia da una fascia all'altra; di notte, quando il programma non tocca nulla, è a 0.</p>
           </div>
           <div class="group">
             <p class="eyebrow evhead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 2.5c.3 2.7-.9 4.4-2.3 6C8.8 10 7 11.9 7 15a5 5 0 0 0 10 0c0-1.7-.6-3.1-1.5-4.3-.2 1.3-.9 2.3-2 2.8.4-2.9-.2-6.3-.9-11z"/></svg>Ultimi Boost accesi</p>
@@ -1398,10 +1399,11 @@ $("events").addEventListener("click", (e) => {
   if (need > S.range) document.querySelector(`[data-range="${need}"]`).click(); else renderLevel();
   $("lvBox").scrollIntoView({ behavior: "smooth", block: "center" });
 });
+$("lvLegMin").addEventListener("click", () => { const n = $("lvLegNote"); n.hidden = !n.hidden; $("lvLegMin").setAttribute("aria-expanded", String(!n.hidden)); });
 function renderLevel() {
   if (S.tab !== "statistiche") return;
   drawLevel($("lvChart"), $("lvBox"), S.range, "lv");
-  $("lvLegMin").hidden = S.range > 3; // la linea del minimo si vede solo su 24 ore e 3 giorni
+  $("lvLegMin").hidden = S.range > 3; if (S.range > 3) $("lvLegNote").hidden = true; // la linea del minimo si vede solo su 24 ore e 3 giorni
   const ev = boostEvents().slice(-8).reverse(); S.evList = ev;
   const NOME = { auto: "Automatico", manuale: "Manuale, dalla dashboard", app: "Manuale, da app o scaldabagno" };
   const IC = { auto: ICON.auto, manuale: ICON.tap, app: ICON.phone };
