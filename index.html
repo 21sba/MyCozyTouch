@@ -537,6 +537,7 @@ input[type="text"] { width: 100%; }
         <div id="statCons" class="view" hidden>
           <div class="controls">
             <div class="seg" role="group" aria-label="Raggruppa per">
+              <button type="button" data-view="24h" aria-pressed="false">24 ore</button>
               <button type="button" data-view="giorni" aria-pressed="true">30 giorni</button>
               <button type="button" data-view="settimana" aria-pressed="false">Settimana</button>
               <button type="button" data-view="mesi" aria-pressed="false">Mesi</button>
@@ -1504,6 +1505,78 @@ function renderBoostCompare(fullDays) {
     <div><span class="k">Differenza</span><span class="v">${diff >= 0 ? "+" : "−"}${fmtN(Math.abs(diff), 1)}${U("kWh")}</span><small>al giorno</small></div></div>
     <p class="muted small">Media dei kWh al giorno. Conta anche quanta acqua si è usata e il freddo di quei giorni, quindi è un'indicazione, non una misura esatta.</p></div>`;
 }
+/* Ultime 24 ore, come il grafico del serbatoio: la curva sale man mano che si consuma.
+   Non esiste un dato orario: lo ricavo dallo storico dello scaldabagno.
+   Corrente = potenza letta ogni ~10 minuti sommata nel tempo. Acqua = quanto scende il livello (docce, rubinetti). */
+function cum24(key) {
+  const end = new Date(), start = new Date(end - 864e5);
+  const rows = S.storico.filter((r) => r.t >= start);
+  if (rows.length < 3) return null;
+  const lpp = litresPerPct(); let acc = 0, any = false;
+  const pts = [{ t: rows[0].t, v: 0, boost: rows[0].boost }];
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1], b = rows[i], dt = (b.t - a.t) / 3600000;
+    if (dt > 0) {
+      if (key === "kwh") {
+        if (a.power != null || b.power != null) { acc += ((a.power ?? b.power) + (b.power ?? a.power)) / 2 * Math.min(dt, 1 / 3) / 1000; any = true; }
+      } else if (dt <= 0.8) {
+        const drop = a.pct - b.pct; if (drop >= 2) acc += drop * lpp; // le perdite lente (acqua che si raffredda) non sono consumo
+        any = true;
+      }
+    }
+    pts.push({ t: b.t, v: acc, boost: b.boost || a.boost, pct: b.pct });
+  }
+  return any ? { pts, start, end, total: acc } : null;
+}
+function drawCum24(box, frame, key) {
+  const d = cum24(key); const isL = key === "litri";
+  if (!d || d.total <= 0 && isL === false && !d.pts.some((p) => p.v > 0)) { box.innerHTML = '<div class="empty">Ancora pochi dati: il grafico si riempie da solo, con un punto ogni 10 minuti.</div>'; return; }
+  const { pts: rows, start, end } = d;
+  const W = Math.max(300, Math.round(box.clientWidth || 340)), H = W > 600 ? 230 : 200, L = 46, R = 14, T = 12, B = 28;
+  const top = niceMax(Math.max(isL ? 50 : 1, d.total * 1.08));
+  const X = (t) => L + (t - start) / (end - start) * (W - L - R);
+  const Y = (v) => T + (1 - Math.min(v, top) / top) * (H - T - B);
+  const P = rows.map((r) => [X(r.t), Y(r.v)]);
+  const line = smoothPath(P), area = `${line} L${P[P.length - 1][0].toFixed(1)},${Y(0)} L${P[0][0].toFixed(1)},${Y(0)} Z`;
+  const col = isL ? "var(--blue)" : "var(--level)", fmtV = (v) => isL ? fmtN(v, 0) + " L" : fmtN(v, 1) + " kWh";
+  let grid = ""; [0, 0.25, 0.5, 0.75, 1].forEach((f) => { const v = top * f;
+    if (f) grid += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--track)" stroke-width="1" stroke-dasharray="2 5"/>`;
+    grid += `<text x="${L - 10}" y="${Y(v) + 4}" text-anchor="end" font-size="12" font-family="var(--body)" fill="var(--muted)">${fmtN(v, Number.isInteger(+v.toFixed(3)) ? 0 : 1)}</text>`; });
+  let labels = ""; const first = new Date(start); first.setMinutes(0, 0, 0);
+  for (let t = new Date(first.getTime() + 3600000); t <= end; t = new Date(t.getTime() + 3600000)) {
+    if (romeMinutes(t) % 360 !== 0) continue;
+    labels += `<text x="${X(t)}" y="${H - 6}" text-anchor="middle" font-size="12" font-family="var(--body)" fill="var(--muted)">${fmtTime(t)}</text>`;
+  }
+  // per la corrente i tratti col Boost acceso sono arancioni, come nel serbatoio
+  let clips = "";
+  if (!isL) for (let i = 0; i < rows.length; i++) {
+    if (!rows[i].boost) continue; let j = i; while (j + 1 < rows.length && rows[j + 1].boost) j++;
+    const x1 = X(rows[i].t), x2 = j + 1 < rows.length ? X(rows[j + 1].t) : X(rows[j].t);
+    clips += `<rect x="${(x1 - 2).toFixed(1)}" y="0" width="${Math.max(6, x2 - x1 + 4).toFixed(1)}" height="${H}"/>`; i = j;
+  }
+  const gid = "cum" + key, lastP = P[P.length - 1];
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${isL ? "Acqua calda usata" : "Corrente usata"} nelle ultime 24 ore">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".22"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient>
+      <linearGradient id="${gid}B" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--hot)" stop-opacity=".34"/><stop offset="1" stop-color="var(--hot)" stop-opacity="0"/></linearGradient>
+      <clipPath id="${gid}C">${clips}</clipPath></defs>
+    ${grid}<line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--track)" stroke-width="2" stroke-linecap="round"/>
+    <path d="${area}" fill="url(#${gid})"/>${clips ? `<path d="${area}" fill="url(#${gid}B)" clip-path="url(#${gid}C)"/>` : ""}
+    <path d="${line}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    ${clips ? `<path d="${line}" fill="none" stroke="var(--hot)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#${gid}C)"/>` : ""}
+    <circle cx="${lastP[0]}" cy="${lastP[1]}" r="6" fill="${col}" stroke="var(--surface)" stroke-width="3"/>
+    <text x="${Math.min(W - R, lastP[0])}" y="${Math.max(T + 12, lastP[1] - 12)}" text-anchor="end" font-size="13" font-weight="800" font-family="var(--display)" fill="var(--ink)">${fmtV(d.total)}</text>
+    ${labels}
+    <line id="csCross" x1="0" x2="0" y1="${T}" y2="${Y(0)}" stroke="var(--ink)" stroke-opacity=".18" stroke-width="1.5" visibility="hidden"/>
+    <circle id="csDot" r="6" fill="${col}" stroke="var(--surface)" stroke-width="3" visibility="hidden"/>
+    <rect x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent"/></svg>
+    ${!isL ? '<p class="small muted" style="padding:0 8px 2px"><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:var(--hot);vertical-align:middle;margin:0 2px 2px"></span> Boost acceso</p>' : ""}`;
+  attachHover(box, frame, W, (xv) => {
+    const tt = new Date(+start + (xv - L) / (W - L - R) * (end - start));
+    let best = rows[0]; rows.forEach((r) => { if (Math.abs(r.t - tt) < Math.abs(best.t - tt)) best = r; });
+    const dot = box.querySelector("#csDot"); if (dot) dot.setAttribute("fill", best.boost && !isL ? "var(--hot)" : col);
+    return { x: X(best.t), y: Y(best.v), html: `${fmtDay(best.t)} ${fmtTime(best.t)}<br><b>${fmtV(best.v)}</b> dall'inizio${best.boost && !isL ? "<br>Boost acceso" : ""}` };
+  }, "cs");
+}
 function renderCons() {
   if (S.tab !== "statistiche" || S.stat === "livello") return;
   const pr = price(); const key = S.cons; const isL = key === "litri";
@@ -1538,7 +1611,10 @@ function renderCons() {
   const unit = (v) => v == null ? "–" : isL ? fmtN(v, 0) + " L" : fmtN(v, 1) + " kWh";
   const cost = (v) => !isL && v != null ? ` · ≈ ${fmtN(v * pr, v * pr < 10 ? 2 : 0)} €` : "";
   const box = $("csChart"); let weekNote = "";
-  if (S.view === "giorni") {
+  if (S.view === "24h") {
+    $("csCaption").textContent = isL ? "Acqua calda usata nelle ultime 24 ore (stima)" : "Corrente usata nelle ultime 24 ore (stima)";
+    drawCum24(box, $("csBox"), key);
+  } else if (S.view === "giorni") {
     const items = all.slice(-30).map((d) => ({ v: d[key], label: fmtDayMonth(new Date(d.data + "T00:00:00Z")), d }));
     $("csCaption").textContent = isL ? "Litri al giorno, ultimi 30 giorni" : "kWh al giorno, ultimi 30 giorni";
     barChart(box, items, color, (it) => `${fmtDayMonth(new Date(it.d.data + "T00:00:00Z"))}${it.d.data >= todayYmd ? " (oggi, in corso)" : ""}<br><b>${unit(it.v)}</b>${cost(it.v)}`, all.length && all[all.length - 1].data >= todayYmd);
@@ -1567,6 +1643,7 @@ function renderCons() {
       return `${MONTHS[it.mo - 1]} ${it.y}${curM}<br><b>${unit(it.v)}</b>${cost(it.v)}${eff}`;
     }, false);
   }
+  if (S.view === "24h") weekNote = "Ultime 24 ore: è una stima ricavata dai dati dello scaldabagno (la corrente dalla potenza letta ogni 10 minuti circa, l'acqua da quanto scende il livello del serbatoio), perché i dati ufficiali arrivano solo al giorno. ";
   if (weekNote) $("consNote").textContent = weekNote + $("consNote").textContent;
 }
 
