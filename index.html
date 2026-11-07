@@ -719,7 +719,7 @@ async function loadAll() {
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/); const head = lines.shift().split(",");
   return lines.map((l) => { const c = l.split(","); const o = {}; head.forEach((h, i) => (o[h] = c[i] ?? ""));
-    return { t: new Date(o.ora), pct: num(o.percentuale), boost: o.boost === "1", soglia: num(o.soglia), azione: o.azione, power: num(o.potenza_w) }; })
+    return { t: new Date(o.ora), pct: num(o.percentuale), boost: o.boost === "1", soglia: num(o.soglia), azione: o.azione, power: num(o.potenza_w), cKwh: num(o.cons_kwh), cL: num(o.cons_litri) }; })
     .filter((r) => !isNaN(r.t) && r.pct != null).sort((a, b) => a.t - b.t);
 }
 function num(v) { if (v === "" || v == null) return null; const n = Number(v); return isFinite(n) ? n : null; }
@@ -1541,6 +1541,13 @@ function cum24(key) {
   const end = new Date(), start = new Date(end - 864e5);
   const rows = S.storico.filter((r) => r.t >= start);
   if (rows.length < 3) return null;
+  // dato vero: se il Worker ha salvato il consumo progressivo di oggi, lo uso così com'è (riparte da zero a mezzanotte, qui lo riaccodo)
+  const ck = key === "kwh" ? "cKwh" : "cL", real = rows.filter((r) => r[ck] != null);
+  if (real.length >= 6) {
+    let off = 0, prev = null, base = null; const pts = [];
+    real.forEach((r) => { if (prev != null && r[ck] < prev - 1e-9) off += prev; prev = r[ck]; const v = off + r[ck]; if (base == null) base = v; pts.push({ t: r.t, v: v - base, boost: r.boost }); });
+    return { pts, start, end, total: pts[pts.length - 1].v, real: true };
+  }
   const lpp = calibLitresPerDrop() ?? litresPerPct(), kk = calibKwh() ?? 1; let acc = 0, any = false;
   const pts = [{ t: rows[0].t, v: 0, boost: rows[0].boost }];
   for (let i = 1; i < rows.length; i++) {
@@ -1641,7 +1648,8 @@ function renderCons() {
   const cost = (v) => !isL && v != null ? ` · ≈ ${fmtN(v * pr, v * pr < 10 ? 2 : 0)} €` : "";
   const box = $("csChart"); let weekNote = "";
   if (S.view === "24h") {
-    $("csCaption").textContent = isL ? "Acqua calda usata nelle ultime 24 ore (stima)" : "Corrente usata nelle ultime 24 ore (stima)";
+    const isReal = !!(cum24(key) || {}).real;
+    $("csCaption").textContent = (isL ? "Acqua calda usata nelle ultime 24 ore" : "Corrente usata nelle ultime 24 ore") + (isReal ? "" : " (stima)");
     drawCum24(box, $("csBox"), key);
   } else if (S.view === "giorni") {
     const items = all.slice(-30).map((d) => ({ v: d[key], label: fmtDayMonth(new Date(d.data + "T00:00:00Z")), d }));
@@ -1672,7 +1680,7 @@ function renderCons() {
       return `${MONTHS[it.mo - 1]} ${it.y}${curM}<br><b>${unit(it.v)}</b>${cost(it.v)}${eff}`;
     }, false);
   }
-  if (S.view === "24h") weekNote = "Ultime 24 ore: è una stima ricavata dai dati dello scaldabagno (la corrente dalla potenza letta ogni 10 minuti circa, l'acqua da quanto scende il livello del serbatoio), perché i dati ufficiali arrivano solo al giorno. ";
+  if (S.view === "24h") weekNote = (cum24(key) || {}).real ? "Ultime 24 ore: i consumi veri letti dal cloud Atlantic ogni 10 minuti circa (il cloud li aggiorna con un po' di ritardo, quindi la curva può salire a gradini). " : "Ultime 24 ore: è una stima ricavata dai dati dello scaldabagno (la corrente dalla potenza letta ogni 10 minuti circa, l'acqua da quanto scende il livello del serbatoio), perché i dati ufficiali arrivano solo al giorno. ";
   if (weekNote) $("consNote").textContent = weekNote + $("consNote").textContent;
 }
 
