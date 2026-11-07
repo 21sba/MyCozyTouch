@@ -1508,11 +1508,26 @@ function renderBoostCompare(fullDays) {
 /* Ultime 24 ore, come il grafico del serbatoio: la curva sale man mano che si consuma.
    Non esiste un dato orario: lo ricavo dallo storico dello scaldabagno.
    Corrente = potenza letta ogni ~10 minuti sommata nel tempo. Acqua = quanto scende il livello (docce, rubinetti). */
+/* Quanti litri vale 1% di livello che scende? Lo imparo confrontando lo storico con i litri ufficiali dei giorni passati:
+   così la stima delle 24 ore torna con i totali giornalieri (il livello da solo sbaglia, perché l'acqua calda si mescola e si raffredda). */
+function dropsPct(rows) {
+  let d = 0;
+  for (let i = 1; i < rows.length; i++) { const dt = (rows[i].t - rows[i - 1].t) / 3600000, dr = rows[i - 1].pct - rows[i].pct; if (dt > 0 && dt <= 0.8 && dr >= 2) d += dr; }
+  return d;
+}
+function calibLitresPerDrop() {
+  const days = (S.consumi && S.consumi.giornalieri) || []; if (!days.length || !S.storico.length) return null;
+  const today = romeParts(new Date()).ymd, by = {};
+  S.storico.forEach((r) => { (by[romeParts(r.t).ymd] ||= []).push(r); });
+  let off = 0, dp = 0;
+  days.forEach((d) => { const rows = by[d.data]; if (d.data >= today || !rows || rows.length < 80 || !d.litri) return; const x = dropsPct(rows); if (x > 0) { off += d.litri; dp += x; } });
+  return dp > 0 ? off / dp : null;
+}
 function cum24(key) {
   const end = new Date(), start = new Date(end - 864e5);
   const rows = S.storico.filter((r) => r.t >= start);
   if (rows.length < 3) return null;
-  const lpp = litresPerPct(); let acc = 0, any = false;
+  const lpp = calibLitresPerDrop() ?? litresPerPct(); let acc = 0, any = false;
   const pts = [{ t: rows[0].t, v: 0, boost: rows[0].boost }];
   for (let i = 1; i < rows.length; i++) {
     const a = rows[i - 1], b = rows[i], dt = (b.t - a.t) / 3600000;
